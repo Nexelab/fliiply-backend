@@ -77,10 +77,10 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 JAZZMIN_SETTINGS = {
-    "site_title": "Admin Vérification",
-    "site_header": "Back Office Vérification",
-    "site_brand": "Ma Marque",
-    "welcome_sign": "Bienvenue sur l’admin",
+    "site_title": "Admin Produit et Vérification",
+    "site_header": "Back Office Produit et Vérification",
+    "site_brand": "Fliiply",
+    "welcome_sign": "Bienvenue sur l’administration",
     "show_sidebar": True,
     "navigation_expanded": True,
 }
