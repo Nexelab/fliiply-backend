@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'accounts',
     'django.contrib.auth',
@@ -75,6 +76,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
+JAZZMIN_SETTINGS = {
+    "site_title": "Admin Vérification",
+    "site_header": "Back Office Vérification",
+    "site_brand": "Ma Marque",
+    "welcome_sign": "Bienvenue sur l’admin",
+    "show_sidebar": True,
+    "navigation_expanded": True,
+}
 
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
