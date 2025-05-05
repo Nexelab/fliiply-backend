@@ -1,11 +1,12 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
-from .views import UserViewSet, RegisterView, ChangeRoleView, CustomTokenObtainPairView
+from .views import UserViewSet, RegisterView, ChangeRoleView, CustomTokenObtainPairView, AddressViewSet
 
 # Router pour les opérations CRUD sur les utilisateurs
 router = DefaultRouter()
 router.register(r'', UserViewSet, basename='users')
+router.register(r'addresses', AddressViewSet, basename='addresses')
 
 # Routes d'authentification
 auth_patterns = [

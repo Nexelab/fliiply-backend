@@ -8,6 +8,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Installer les dépendances
+RUN apt-get update && apt-get install -y netcat-openbsd curl && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copier le reste du code
