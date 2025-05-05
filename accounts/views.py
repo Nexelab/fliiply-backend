@@ -140,61 +140,33 @@ class ChangeRoleView(APIView):
 class AddressViewSet(viewsets.ModelViewSet):
     queryset = Address.objects.all()
     serializer_class = AddressSerializer
-    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Address.objects.filter(user=self.request.user)
+        # Vérifie si la requête est pour la génération Swagger
+        if getattr(self, 'swagger_fake_view', False):
+            return Address.objects.none()  # Retourne un queryset vide pour Swagger
+        # Filtre les adresses par utilisateur authentifié
+        if self.request.user.is_authenticated:
+            return Address.objects.filter(user=self.request.user)
+        return Address.objects.none()  # Retourne vide pour les utilisateurs non authentifiés
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            permission_classes = [IsAuthenticated]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
     @swagger_auto_schema(
-        responses={200: AddressSerializer(many=True)},
-        operation_description="List all addresses of the authenticated user."
+        operation_description="List all addresses for the authenticated user.",
+        responses={200: AddressSerializer(many=True), 401: "Unauthorized"}
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
     @swagger_auto_schema(
-        request_body=AddressSerializer,
-        responses={201: AddressSerializer, 400: "Bad Request"},
-        operation_description="Create a new address for the authenticated user."
+        operation_description="Create a new address for the authenticated user.",
+        responses={201: AddressSerializer, 400: "Bad Request", 401: "Unauthorized"}
     )
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        address = serializer.save(user=request.user)
-        # Si l'adresse est de type facturation, l'associer à l'utilisateur
-        if address.address_type in ['billing', 'both']:
-            request.user.billing_address = address
-            request.user.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    @swagger_auto_schema(
-        request_body=AddressSerializer,
-        responses={200: AddressSerializer, 400: "Bad Request"},
-        operation_description="Update an existing address of the authenticated user."
-    )
-    def update(self, request, *args, **kwargs):
-        address = self.get_object()
-        serializer = self.get_serializer(address, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        updated_address = serializer.save()
-        # Mettre à jour billing_address si nécessaire
-        if updated_address.address_type in ['billing', 'both']:
-            request.user.billing_address = updated_address
-            request.user.save()
-        elif request.user.billing_address == updated_address:
-            # Si l'adresse n'est plus de type facturation, supprimer la liaison
-            request.user.billing_address = None
-            request.user.save()
-        return Response(serializer.data)
-
-    @swagger_auto_schema(
-        responses={204: "No Content", 403: "Forbidden"},
-        operation_description="Delete an address of the authenticated user."
-    )
-    def destroy(self, request, *args, **kwargs):
-        address = self.get_object()
-        if request.user.billing_address == address:
-            request.user.billing_address = None
-            request.user.save()
-        address.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return super().create(request, *args, **kwargs)

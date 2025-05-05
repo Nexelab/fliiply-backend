@@ -4,6 +4,7 @@ class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True, null=True)
     slug = models.SlugField(max_length=100, unique=True, blank=True)
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -12,6 +13,18 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        verbose_name_plural = "categories"
+
+class ProductImage(models.Model):
+    product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='images')
+    image = models.URLField(max_length=500)
+    alt_text = models.CharField(max_length=200, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Image for {self.product.name}"
 
 class PriceHistory(models.Model):
     product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='price_histories')
@@ -22,29 +35,46 @@ class PriceHistory(models.Model):
         return f"{self.product.name} - {self.price}€ on {self.recorded_at}"
 
 class Product(models.Model):
-    set = models.CharField(max_length=100)  # Ex. "Écarlate et Violet ParadoXe RiFT Lune Néo"
-    name = models.CharField(max_length=200)  # Ex. "Boîte de dressage d’élite du Centre Pokémon"
-    image = models.URLField(max_length=500, blank=True, null=True)  # URL de l'image
-    description = models.TextField(blank=True, null=True)  # Description détaillée
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='products')
+    TCG_TYPES = (
+        ('pokemon', 'Pokémon'),
+        ('yugioh', 'Yu-Gi-Oh'),
+        ('magic', 'Magic: The Gathering'),
+        ('other', 'Other'),
+    )
+    LANGUAGES = (
+        ('fr', 'Français'),
+        ('en', 'Anglais'),
+        ('jp', 'Japonais'),
+        ('other', 'Other'),
+    )
+
+    name = models.CharField(max_length=200)
+    series = models.CharField(max_length=100, blank=True, null=True)  # Ex. "Écarlate et Violet"
+    collection = models.CharField(max_length=100, blank=True, null=True)  # Ex. "ParadoXe RiFT Lune Néo"
+    description = models.TextField(blank=True, null=True)
+    tcg_type = models.CharField(max_length=50, choices=TCG_TYPES, default='pokemon')
+    language = models.CharField(max_length=50, choices=LANGUAGES, default='fr')
+    categories = models.ManyToManyField(Category, related_name='products')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.name} ({self.set})"
+        return f"{self.name} ({self.series or 'No Series'}, {self.collection or 'No Collection'}, {self.tcg_type}, {self.language})"
 
     def calculate_average_price(self):
         listings = self.listings.all()
         if listings.exists():
             total_price = sum(listing.price for listing in listings)
             return total_price / listings.count()
-        return 0  # Retourne 0 si aucune annonce n'existe
+        return 0
 
     def calculate_total_stock(self):
         listings = self.listings.all()
         if listings.exists():
             return sum(listing.stock for listing in listings)
-        return 0  # Retourne 0 si aucune annonce n'existe
+        return 0
 
     class Meta:
-        unique_together = ['set', 'name']  # Garantir l'unicité par set et name
+        constraints = [
+            models.UniqueConstraint(fields=['name', 'series', 'collection'], name='unique_product')
+        ]
