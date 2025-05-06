@@ -19,12 +19,16 @@ class Category(models.Model):
 
 class ProductImage(models.Model):
     product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='images')
-    image = models.URLField(max_length=500)
+    image = models.ImageField(upload_to='product_images/')
     alt_text = models.CharField(max_length=200, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Image for {self.product.name}"
+
+    class Meta:
+        verbose_name = 'product image'
+        verbose_name_plural = 'product images'
 
 class PriceHistory(models.Model):
     product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='price_histories')
@@ -49,8 +53,8 @@ class Product(models.Model):
     )
 
     name = models.CharField(max_length=200)
-    series = models.CharField(max_length=100, blank=True, null=True)  # Ex. "Écarlate et Violet"
-    collection = models.CharField(max_length=100, blank=True, null=True)  # Ex. "ParadoXe RiFT Lune Néo"
+    series = models.CharField(max_length=100, blank=True, null=True)
+    collection = models.CharField(max_length=100, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     tcg_type = models.CharField(max_length=50, choices=TCG_TYPES, default='pokemon')
     language = models.CharField(max_length=50, choices=LANGUAGES, default='fr')

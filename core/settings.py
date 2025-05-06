@@ -29,15 +29,17 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 # MinIO Configuration (compatible avec S3 API)
-AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID', 'bji8Y92GjKUjD8hIGeCI')
-AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', 'dJXDTQctmTn95DsiCl4tfZltq3fO1oHJ47MHiYZJ')
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID', 'BCYE5fnrcZhmaofhNhEl')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', 'FV4ZtW7HuoFJ2nsWcp5rzUe6RLiLPX95LBL0so2Q')
 AWS_STORAGE_BUCKET_NAME = 'fliiply-product-images'
 AWS_S3_ENDPOINT_URL = 'http://minio:9000'  # Nom du service Docker ou 'http://localhost:9002' si local
+AWS_S3_CUSTOM_DOMAIN = 'localhost:9002/fliiply-product-images'  # Endpoint public pour les URLs
 AWS_S3_REGION_NAME = 'us-east-1'  # Région fictive pour MinIO
 AWS_S3_USE_SSL = False  # Pas de SSL en dev local
 AWS_DEFAULT_ACL = 'public-read'  # Images accessibles publiquement
 AWS_S3_FILE_OVERWRITE = False  # Éviter d'écraser les fichiers
 AWS_QUERYSTRING_AUTH = False  # URLs publiques sans signature
+AWS_S3_URL_PROTOCOL = 'http:'
 
 # django-storages
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
