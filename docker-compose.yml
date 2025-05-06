@@ -12,11 +12,19 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_STORAGE_BUCKET_NAME=fliiply-product-images
       - AWS_S3_ENDPOINT_URL=http://minio:9000
+      - EMAIL_HOST=postfix
+      - EMAIL_PORT=25
+      - EMAIL_USE_TLS=false
+      - DEFAULT_FROM_EMAIL=Fliiply <no-reply@fliiply.com>
     depends_on:
       db:
         condition: service_healthy
       minio:
         condition: service_started
+      postfix:
+        condition: service_started
+    networks:
+      - fliiply-network
   db:
     image: postgres:16
     environment:
@@ -32,6 +40,8 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
+    networks:
+      - fliiply-network
   minio:
     image: minio/minio
     ports:
@@ -43,7 +53,34 @@ services:
     volumes:
       - minio-data:/data
     command: server /data --console-address ":9001"
+    networks:
+      - fliiply-network
+  postfix:
+    image: boky/postfix:latest
+    ports:
+      - "1587:587"
+    environment:
+      - ALLOWED_SENDER_DOMAINS=fliiply.local fliiply.com
+      - MYHOSTNAME=mail.fliiply.local
+      - MYNETWORKS=172.19.0.0/16 192.168.65.0/24 127.0.0.0/8
+      - ALLOW_EMPTY_SENDER_DOMAINS=no
+    volumes:
+      - postfix-data:/var/spool/postfix
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - fliiply-network
+
+
+networks:
+  fliiply-network:
+    driver: bridge
 
 volumes:
   postgres_data:
   minio-data:
+  postfix-data:
+  postfix-config:
