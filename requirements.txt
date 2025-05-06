@@ -8,3 +8,7 @@ djangorestframework-simplejwt==5.4.0
 pytest-django==4.8.0
 requests==2.32.3
 pytest~=8.3.5
+django-storages==1.14
+boto3==1.34.0
+Pillow==10.3.0
+python-dotenv==1.0.1

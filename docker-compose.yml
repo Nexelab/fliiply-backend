@@ -8,9 +8,15 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgres://fliiply_user:fliiply_1234@db:5432/fliiply_database
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_STORAGE_BUCKET_NAME=fliiply-product-images
+      - AWS_S3_ENDPOINT_URL=http://minio:9000
     depends_on:
       db:
         condition: service_healthy
+      minio:
+        condition: service_started
   db:
     image: postgres:16
     environment:
@@ -26,6 +32,18 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
+  minio:
+    image: minio/minio
+    ports:
+      - "9002:9000"  # API
+      - "9003:9001"  # Console
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=admin1234
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
 
 volumes:
   postgres_data:
+  minio-data:
