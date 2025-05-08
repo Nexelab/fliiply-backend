@@ -1,3 +1,4 @@
+# accounts/views.py
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -5,8 +6,14 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from django.contrib.auth.forms import PasswordResetForm, SetPasswordForm
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils.encoding import force_str, force_bytes
+from django.contrib.sites.shortcuts import get_current_site
 from .models import User, Address
 from .serializers import UserSerializer, AddressSerializer
+from .permissions import IsOwner
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     permission_classes = [AllowAny]
@@ -38,7 +45,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOwner]
 
     def get_queryset(self):
         return User.objects.filter(id=self.request.user.id)
@@ -140,6 +147,7 @@ class ChangeRoleView(APIView):
 class AddressViewSet(viewsets.ModelViewSet):
     queryset = Address.objects.all()
     serializer_class = AddressSerializer
+    permission_classes = [IsAuthenticated, IsOwner]
 
     def get_queryset(self):
         # Vérifie si la requête est pour la génération Swagger
@@ -150,12 +158,9 @@ class AddressViewSet(viewsets.ModelViewSet):
             return Address.objects.filter(user=self.request.user)
         return Address.objects.none()  # Retourne vide pour les utilisateurs non authentifiés
 
-    def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            permission_classes = [IsAuthenticated]
-        else:
-            permission_classes = [IsAuthenticated]
-        return [permission() for permission in permission_classes]
+    def perform_create(self, serializer):
+        # Assigner l'utilisateur connecté lors de la création
+        serializer.save(user=self.request.user)
 
     @swagger_auto_schema(
         operation_description="List all addresses for the authenticated user.",
@@ -170,3 +175,106 @@ class AddressViewSet(viewsets.ModelViewSet):
     )
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
+
+class PasswordResetRequestView(APIView):
+    permission_classes = [AllowAny]
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['email'],
+            properties={
+                'email': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL, description='Email of the user requesting a password reset'),
+            },
+        ),
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING, description='Success message'),
+                    'uidb64': openapi.Schema(type=openapi.TYPE_STRING, description='Encoded user ID'),
+                    'token': openapi.Schema(type=openapi.TYPE_STRING, description='Password reset token'),
+                }
+            ),
+            400: "Bad Request"
+        },
+        operation_description="Request a password reset email for the specified user email. Returns uidb64 and token."
+    )
+    def post(self, request):
+        email = request.data.get('email')
+        if not email:
+            return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'error': 'User with this email does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Générer manuellement uidb64 et token
+        uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+
+        # Envoyer l'e-mail avec uidb64 et token
+        form = PasswordResetForm(data={'email': email})
+        if form.is_valid():
+            form.save(
+                domain_override=get_current_site(request).domain,
+                subject_template_name='registration/password_reset_email_subject.txt',
+                email_template_name='registration/password_reset_email.txt',
+                from_email='Fliiply <no-reply@fliiply.com>',
+                request=request,
+                extra_email_context={'uidb64': uidb64, 'token': token}
+            )
+            return Response({
+                'message': 'Password reset email sent',
+                'uidb64': uidb64,
+                'token': token
+            }, status=status.HTTP_200_OK)
+        return Response({'error': 'Invalid email'}, status=status.HTTP_400_BAD_REQUEST)
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [AllowAny]
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['uidb64', 'token', 'new_password'],
+            properties={
+                'uidb64': openapi.Schema(type=openapi.TYPE_STRING, description='Encoded user ID from reset email'),
+                'token': openapi.Schema(type=openapi.TYPE_STRING, description='Token from reset email'),
+                'new_password': openapi.Schema(type=openapi.TYPE_STRING, description='New password to set'),
+            },
+        ),
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING, description='Success message')
+                }
+            ),
+            400: "Bad Request",
+            403: "Invalid token"
+        },
+        operation_description="Confirm password reset using uidb64 and token, and set a new password."
+    )
+    def post(self, request):
+        uidb64 = request.data.get('uidb64')
+        token = request.data.get('token')
+        new_password = request.data.get('new_password')
+
+        if not all([uidb64, token, new_password]):
+            return Response({'error': 'uidb64, token, and new_password are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            user = None
+
+        if user is not None and default_token_generator.check_token(user, token):
+            form = SetPasswordForm(user, {'new_password1': new_password, 'new_password2': new_password})
+            if form.is_valid():
+                form.save()
+                return Response({'message': 'Password reset successfully'}, status=status.HTTP_200_OK)
+            return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Invalid token or user'}, status=status.HTTP_403_FORBIDDEN)

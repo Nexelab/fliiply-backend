@@ -1,6 +1,9 @@
 # Utiliser une image Python officielle
 FROM python:3.11-slim
 
+# Installer les dépendances système, y compris telnet
+RUN apt-get update && apt-get install -y telnet
+
 # Définir le répertoire de travail
 WORKDIR /app
 
