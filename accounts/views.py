@@ -1,4 +1,9 @@
 # accounts/views.py
+import uuid
+from datetime import timedelta
+
+from django.core.mail import send_mail
+from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -13,7 +18,8 @@ from django.utils.encoding import force_str, force_bytes
 from django.contrib.sites.shortcuts import get_current_site
 from .models import User, Address
 from .serializers import UserSerializer, AddressSerializer
-from .permissions import IsOwner
+from .permissions import IsOwner, IsEmailVerified
+
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     permission_classes = [AllowAny]
@@ -95,8 +101,34 @@ class RegisterView(APIView):
                 phone_number=serializer.validated_data.get('phone_number'),
                 is_buyer=True,
                 is_seller=True,
-                is_verifier=False
+                is_verifier=False,
+                email_verification_token = str(uuid.uuid4()),
+                email_verification_expiry = timezone.now() + timedelta(hours=24)
             )
+
+            # Générer l'URL de vérification
+            current_site = get_current_site(request)
+            verification_url = (
+                f"http://{current_site.domain}/api/v1/core/accounts/verify_email/"
+                f"?uidb64={urlsafe_base64_encode(force_bytes(user.pk))}"
+                f"&token={user.email_verification_token}"
+            )
+
+            # Envoyer l'email de vérification
+            send_mail(
+                subject="Vérifiez votre adresse email",
+                message=(
+                    f"Bonjour {user.username},\n\n"
+                    f"Veuillez cliquer sur le lien suivant pour vérifier votre adresse email :\n"
+                    f"{verification_url}\n\n"
+                    "Ce lien est valide pendant 24 heures. Si vous n'avez pas créé de compte, ignorez cet email."
+                    "Si vous n'avez pas créé de compte, ignorez cet email."
+                ),
+                from_email="Fliiply <no-reply@fliiply.com>",
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+
             return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -147,7 +179,7 @@ class ChangeRoleView(APIView):
 class AddressViewSet(viewsets.ModelViewSet):
     queryset = Address.objects.all()
     serializer_class = AddressSerializer
-    permission_classes = [IsAuthenticated, IsOwner]
+    permission_classes = [IsAuthenticated, IsOwner, IsEmailVerified]
 
     def get_queryset(self):
         # Vérifie si la requête est pour la génération Swagger
@@ -278,3 +310,110 @@ class PasswordResetConfirmView(APIView):
                 return Response({'message': 'Password reset successfully'}, status=status.HTTP_200_OK)
             return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response({'error': 'Invalid token or user'}, status=status.HTTP_403_FORBIDDEN)
+
+class VerifyEmailView(APIView):
+    permission_classes = [AllowAny]
+
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                'uidb64',
+                openapi.IN_QUERY,
+                description="Encoded user ID",
+                type=openapi.TYPE_STRING,
+                required=True
+            ),
+            openapi.Parameter(
+                'token',
+                openapi.IN_QUERY,
+                description="Verification token",
+                type=openapi.TYPE_STRING,
+                required=True
+            ),
+        ],
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING, description='Success message')
+                }
+            ),
+            400: "Bad Request",
+            403: "Invalid or expired token"
+        },
+        operation_description="Verify a user's email using the provided uidb64 and token."
+    )
+    def get(self, request):
+        uidb64 = request.GET.get('uidb64')
+        token = request.GET.get('token')
+
+        if not all([uidb64, token]):
+            return Response({'error': 'uidb64 and token are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            user = None
+
+        if user is not None and user.email_verification_token == token:
+            if user.is_verification_token_valid():
+                user.is_email_verified = True
+                user.email_verification_token = None
+                user.email_verification_expiry = None
+                user.save()
+                return Response({'message': 'Email verified successfully'}, status=status.HTTP_200_OK)
+            else:
+                return Response({'error': 'Verification token has expired'}, status=status.HTTP_403_FORBIDDEN)
+        return Response({'error': 'Invalid token or user'}, status=status.HTTP_403_FORBIDDEN)
+
+class ResendVerificationEmailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING, description='Success message')
+                }
+            ),
+            400: "Bad Request",
+            403: "Email already verified"
+        },
+        operation_description="Resend a verification email to the authenticated user if their email is not yet verified."
+    )
+    def post(self, request):
+        user = request.user
+
+        if user.is_email_verified:
+            return Response({'error': 'Email is already verified'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Générer un nouveau token et une nouvelle date d'expiration
+        user.email_verification_token = str(uuid.uuid4())
+        user.email_verification_expiry = timezone.now() + timedelta(hours=24)
+        user.save()
+
+        # Générer l'URL de vérification
+        current_site = get_current_site(request)
+        verification_url = (
+            f"http://{current_site.domain}/api/v1/core/accounts/verify_email/"
+            f"?uidb64={urlsafe_base64_encode(force_bytes(user.pk))}"
+            f"&token={user.email_verification_token}"
+        )
+
+        # Envoyer l'email de vérification
+        send_mail(
+            subject="Vérifiez votre adresse email",
+            message=(
+                f"Bonjour {user.username},\n\n"
+                f"Veuillez cliquer sur le lien suivant pour vérifier votre adresse email :\n"
+                f"{verification_url}\n\n"
+                "Ce lien est valide pendant 24 heures. Si vous n'avez pas créé de compte pozostań na tym mailu."
+            ),
+            from_email="Fliiply <no-reply@fliiply.com>",
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+
+        return Response({'message': 'Verification email resent successfully'}, status=status.HTTP_200_OK)

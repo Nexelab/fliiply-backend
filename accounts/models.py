@@ -1,5 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils import timezone
+
 
 class User(AbstractUser):
     is_buyer = models.BooleanField(default=True)
@@ -13,9 +15,19 @@ class User(AbstractUser):
         blank=True,
         related_name='billing_user',
     )
+    is_email_verified = models.BooleanField(default=False)
+    email_verification_token = models.CharField(max_length=100, blank=True, null=True)
+    email_verification_expiry = models.DateTimeField(blank=True, null=True)
+
 
     def __str__(self):
         return self.username
+
+    def is_verification_token_valid(self):
+        """Vérifie si le token de vérification est encore valide."""
+        if not self.email_verification_expiry:
+            return False
+        return timezone.now() <= self.email_verification_expiry
 
 class Address(models.Model):
     ADDRESS_TYPE_CHOICES = (

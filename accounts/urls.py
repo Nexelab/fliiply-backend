@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import UserViewSet, RegisterView, ChangeRoleView, CustomTokenObtainPairView, AddressViewSet, \
-    PasswordResetRequestView, PasswordResetConfirmView
+    PasswordResetRequestView, PasswordResetConfirmView, VerifyEmailView, ResendVerificationEmailView
 
 # Router pour les opérations CRUD sur les utilisateurs
 router = DefaultRouter()
@@ -16,6 +16,9 @@ auth_patterns = [
     path('register/', RegisterView.as_view(), name='register'),
     path('password_reset/', PasswordResetRequestView.as_view(), name='password_reset_request'),
     path('password_reset_confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+    path('verify_email/', VerifyEmailView.as_view(), name='verify_email'),
+    path('resend_verification_email/', ResendVerificationEmailView.as_view(), name='resend_verification_email'),
+
 ]
 
 # Routes des utilisateurs
