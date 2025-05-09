@@ -1,5 +1,9 @@
 from rest_framework import serializers
+from django.contrib.auth import get_user_model
+from django.utils import timezone
 from .models import User, Address
+
+User = get_user_model()
 
 class AddressSerializer(serializers.ModelSerializer):
     class Meta:
@@ -40,10 +44,50 @@ class UserSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
-    def update(self, validated_data):
+    def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
-        user = super().update(validated_data)
+        user = super().update(instance, validated_data)
         if password:
             user.set_password(password)
             user.save()
+        return user
+
+class UserRegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, min_length=8)
+    confirm_password = serializers.CharField(write_only=True, min_length=8)
+    accept_terms = serializers.BooleanField(required=True)
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'password', 'confirm_password', 'phone_number', 'accept_terms', 'subscribed_to_newsletter']
+        extra_kwargs = {
+            'phone_number': {'required': False},  # Assurer que phone_number est facultatif
+        }
+
+    def validate(self, data):
+        # Vérifier que les mots de passe correspondent
+        if data['password'] != data['confirm_password']:
+            raise serializers.ValidationError({"confirm_password": "Les mots de passe ne correspondent pas."})
+
+        # Vérifier que les conditions générales sont acceptées
+        if not data['accept_terms']:
+            raise serializers.ValidationError({"accept_terms": "Vous devez accepter les conditions générales."})
+
+        return data
+
+    def create(self, validated_data):
+        # Supprimer les champs temporaires
+        validated_data.pop('confirm_password')
+        validated_data.pop('accept_terms')
+
+        # Créer l'utilisateur
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            password=validated_data['password'],
+            phone_number=validated_data.get('phone_number', None),  # Facultatif
+            subscribed_to_newsletter=validated_data.get('subscribed_to_newsletter', False),
+            accepted_terms=True,
+            accepted_terms_at=timezone.now()
+        )
         return user

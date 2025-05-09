@@ -1,4 +1,3 @@
-# accounts/views.py
 import uuid
 from datetime import timedelta
 
@@ -9,6 +8,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.tokens import RefreshToken
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.contrib.auth.forms import PasswordResetForm, SetPasswordForm
@@ -17,9 +17,8 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.encoding import force_str, force_bytes
 from django.contrib.sites.shortcuts import get_current_site
 from .models import User, Address
-from .serializers import UserSerializer, AddressSerializer
+from .serializers import UserSerializer, AddressSerializer, UserRegisterSerializer
 from .permissions import IsOwner, IsEmailVerified
-
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     permission_classes = [AllowAny]
@@ -77,35 +76,36 @@ class RegisterView(APIView):
     @swagger_auto_schema(
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            required=['username', 'email', 'password'],
+            required=['username', 'email', 'password', 'confirm_password', 'accept_terms'],
             properties={
                 'username': openapi.Schema(type=openapi.TYPE_STRING, description='Username of the new user'),
                 'email': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL, description='Email of the new user'),
                 'password': openapi.Schema(type=openapi.TYPE_STRING, description='Password of the new user'),
-                'phone_number': openapi.Schema(type=openapi.TYPE_STRING, description='Phone number of the new user (optional)'),
+                'confirm_password': openapi.Schema(type=openapi.TYPE_STRING, description='Confirmation of the password'),
+                'accept_terms': openapi.Schema(type=openapi.TYPE_BOOLEAN, description='Whether the user accepts the terms and conditions'),
+                'subscribed_to_newsletter': openapi.Schema(type=openapi.TYPE_BOOLEAN, description='Whether the user wants to subscribe to the newsletter'),
             },
         ),
         responses={
-            201: UserSerializer,
+            201: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'refresh': openapi.Schema(type=openapi.TYPE_STRING, description='Refresh token'),
+                    'access': openapi.Schema(type=openapi.TYPE_STRING, description='Access token'),
+                    'refresh_expires_in': openapi.Schema(type=openapi.TYPE_INTEGER, description='Refresh token expiry in seconds'),
+                    'access_expires_in': openapi.Schema(type=openapi.TYPE_INTEGER, description='Access token expiry in seconds'),
+                }
+            ),
             400: "Bad Request"
         },
-        operation_description="Register a new user with the specified username, email, password, and optional phone number."
+        operation_description="Register a new user with the specified details."
     )
     def post(self, request):
-        serializer = UserSerializer(data=request.data)
+        serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
-            user = User.objects.create_user(
-                username=serializer.validated_data['username'],
-                email=serializer.validated_data['email'],
-                password=serializer.validated_data['password'],
-                phone_number=serializer.validated_data.get('phone_number'),
-                is_buyer=True,
-                is_seller=True,
-                is_verifier=False,
-                email_verification_token = str(uuid.uuid4()),
-                email_verification_expiry = timezone.now() + timedelta(hours=24)
-            )
-
+            user = serializer.save()
+            # Générer les tokens JWT
+            refresh = RefreshToken.for_user(user)
             # Générer l'URL de vérification
             current_site = get_current_site(request)
             verification_url = (
@@ -122,14 +122,18 @@ class RegisterView(APIView):
                     f"Veuillez cliquer sur le lien suivant pour vérifier votre adresse email :\n"
                     f"{verification_url}\n\n"
                     "Ce lien est valide pendant 24 heures. Si vous n'avez pas créé de compte, ignorez cet email."
-                    "Si vous n'avez pas créé de compte, ignorez cet email."
                 ),
                 from_email="Fliiply <no-reply@fliiply.com>",
                 recipient_list=[user.email],
                 fail_silently=False,
             )
 
-            return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'refresh_expires_in': 604800,  # 7 jours en secondes
+                'access_expires_in': 300       # 5 minutes en secondes
+            }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ChangeRoleView(APIView):
@@ -409,7 +413,7 @@ class ResendVerificationEmailView(APIView):
                 f"Bonjour {user.username},\n\n"
                 f"Veuillez cliquer sur le lien suivant pour vérifier votre adresse email :\n"
                 f"{verification_url}\n\n"
-                "Ce lien est valide pendant 24 heures. Si vous n'avez pas créé de compte pozostań na tym mailu."
+                "Ce lien est valide pendant 24 heures. Si vous n'avez pas créé de compte, ignorez cet email."
             ),
             from_email="Fliiply <no-reply@fliiply.com>",
             recipient_list=[user.email],

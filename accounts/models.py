@@ -18,7 +18,19 @@ class User(AbstractUser):
     is_email_verified = models.BooleanField(default=False)
     email_verification_token = models.CharField(max_length=100, blank=True, null=True)
     email_verification_expiry = models.DateTimeField(blank=True, null=True)
-
+    subscribed_to_newsletter = models.BooleanField(
+        default=False,
+        help_text="Indique si l'utilisateur est abonné à la newsletter."
+    )
+    accepted_terms = models.BooleanField(
+        default=False,
+        help_text="Indique si l'utilisateur a accepté les conditions générales."
+    )
+    accepted_terms_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Date à laquelle l'utilisateur a accepté les conditions générales."
+    )
 
     def __str__(self):
         return self.username
