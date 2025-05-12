@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.contrib.auth.forms import PasswordResetForm, SetPasswordForm
@@ -53,6 +54,8 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return User.objects.none()
         return User.objects.filter(id=self.request.user.id)
 
     @swagger_auto_schema(
@@ -69,6 +72,15 @@ class UserViewSet(viewsets.ModelViewSet):
     )
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    @swagger_auto_schema(
+        responses={200: UserSerializer},
+        operation_description="Retrieve the authenticated user's details via /accounts/me/."
+    )
+    def me(self, request):
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -104,6 +116,10 @@ class RegisterView(APIView):
         serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+            # Générer le token de vérification et l'expiration
+            user.email_verification_token = str(uuid.uuid4())
+            user.email_verification_expiry = timezone.now() + timedelta(hours=24)
+            user.save()
             # Générer les tokens JWT
             refresh = RefreshToken.for_user(user)
             # Générer l'URL de vérification
@@ -186,16 +202,13 @@ class AddressViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsOwner, IsEmailVerified]
 
     def get_queryset(self):
-        # Vérifie si la requête est pour la génération Swagger
         if getattr(self, 'swagger_fake_view', False):
-            return Address.objects.none()  # Retourne un queryset vide pour Swagger
-        # Filtre les adresses par utilisateur authentifié
+            return Address.objects.none()
         if self.request.user.is_authenticated:
             return Address.objects.filter(user=self.request.user)
-        return Address.objects.none()  # Retourne vide pour les utilisateurs non authentifiés
+        return Address.objects.none()
 
     def perform_create(self, serializer):
-        # Assigner l'utilisateur connecté lors de la création
         serializer.save(user=self.request.user)
 
     @swagger_auto_schema(
