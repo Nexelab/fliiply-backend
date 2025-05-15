@@ -125,7 +125,7 @@ class RegisterView(APIView):
             # Générer l'URL de vérification
             current_site = get_current_site(request)
             verification_url = (
-                f"http://{current_site.domain}/api/v1/core/accounts/verify_email/"
+                f"http://localhost:3000/email/confirm"
                 f"?uidb64={urlsafe_base64_encode(force_bytes(user.pk))}"
                 f"&token={user.email_verification_token}"
             )
@@ -412,12 +412,10 @@ class ResendVerificationEmailView(APIView):
         user.save()
 
         # Générer l'URL de vérification
-        current_site = get_current_site(request)
-        verification_url = (
-            f"http://{current_site.domain}/api/v1/core/accounts/verify_email/"
-            f"?uidb64={urlsafe_base64_encode(force_bytes(user.pk))}"
-            f"&token={user.email_verification_token}"
-        )
+        uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+        token = user.email_verification_token
+        frontend_url = "http://localhost:3000/email/confirm"
+        verification_url = f"{frontend_url}?uidb64={uidb64}&token={token}"
 
         # Envoyer l'email de vérification
         send_mail(
