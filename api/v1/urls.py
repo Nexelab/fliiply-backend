@@ -1,9 +1,10 @@
 from django.urls import path, include
-from accounts.urls import auth_patterns, user_patterns
+from accounts.urls import auth_patterns, user_patterns, stripe_patterns
 
 urlpatterns = [
     path('auth/', include(auth_patterns)),
     path('users/', include(user_patterns)),
     path('', include('products.urls')),
     path('', include('orders.urls')),
+    path('stripe/', include(stripe_patterns)),
 ]

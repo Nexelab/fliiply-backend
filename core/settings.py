@@ -44,6 +44,10 @@ AWS_S3_URL_PROTOCOL = 'http:'
 # django-storages
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
+STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY')
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -193,6 +197,7 @@ SWAGGER_SETTINGS = {
             'type': 'apiKey',
             'name': 'Authorization',
             'in': 'header',
+            'description': 'Format : Bearer <token>',
         },
     },
 }

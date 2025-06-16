@@ -17,9 +17,9 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.encoding import force_str, force_bytes
 from django.contrib.sites.shortcuts import get_current_site
-from .models import User, Address
-from .serializers import UserSerializer, AddressSerializer, UserRegisterSerializer
-from .permissions import IsOwner, IsEmailVerified
+from accounts.models import User, Address
+from accounts.serializers import UserSerializer, AddressSerializer, UserRegisterSerializer
+from accounts.permissions import IsOwner, IsEmailVerified
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     permission_classes = [AllowAny]

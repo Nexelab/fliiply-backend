@@ -55,6 +55,12 @@ class User(AbstractUser):
         default=False,
         help_text="Indique si l'utilisateur a complété le KYC avec succès."
     )
+    total_sales_amount = models.DecimalField(
+        default=0.0,
+        max_digits=10,
+        decimal_places=2,
+        help_text="Montant total des ventes réalisées par l'utilisateur."
+    )
 
     def __str__(self):
         return self.username

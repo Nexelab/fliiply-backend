@@ -1,8 +1,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
-from .views import UserViewSet, RegisterView, ChangeRoleView, CustomTokenObtainPairView, AddressViewSet, \
+from accounts.views import UserViewSet, RegisterView, ChangeRoleView, CustomTokenObtainPairView, AddressViewSet, \
     PasswordResetRequestView, PasswordResetConfirmView, VerifyEmailView, ResendVerificationEmailView, VerifyKYCView
+from .views.onboarding import StripeOnboardingView
+from .views.webhook import stripe_webhook
+from django.views.generic import TemplateView
 
 # Router pour les opérations CRUD sur les utilisateurs
 router = DefaultRouter()
@@ -26,4 +29,11 @@ user_patterns = [
     path('', include(router.urls)),  # CRUD sur les utilisateurs
     path('<int:user_id>/role/', ChangeRoleView.as_view(), name='change-role'),
     path('accounts/kyc/verify/<int:user_id>/', VerifyKYCView.as_view(), name='verify-kyc'),
+]
+
+stripe_patterns = [
+    path('onboarding/start/', StripeOnboardingView.as_view(), name='stripe-onboarding'),
+    path('onboarding/complete/', TemplateView.as_view(template_name='stripe/complete.html')),
+    path('onboarding/refresh/', TemplateView.as_view(template_name='stripe/refresh.html')),
+    path('webhook/', stripe_webhook, name='stripe-webhook'),
 ]

@@ -29,7 +29,7 @@ class UserAdmin(BaseUserAdmin):
         (None, {'fields': ('username', 'password')}),
         ('Informations personnelles', {'fields': (
             'email', 'phone_number',
-            'subscribed_to_newsletter', 'accepted_terms', 'accepted_terms_at'
+            'subscribed_to_newsletter', 'accepted_terms', 'accepted_terms_at',
             'role', 'rating', 'stripe_account_id', 'is_kyc_verified'
         )
         }),
