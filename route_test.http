@@ -1,0 +1,255 @@
+### 🔐 Register
+POST http://localhost:8000/auth/register
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "strongpass123",
+  "username": "testuser"
+}
+
+### 🔐 Login
+POST http://localhost:8000/auth/login
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "strongpass123"
+}
+
+### 🧪 Set JWT token below before running other requests
+# @token = paste_your_token_here
+
+### 👤 Get current user
+GET http://localhost:8000/users/me
+Authorization: Bearer {{token}}
+
+### 👤 Update current user
+PUT http://localhost:8000/users/me
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "username": "updateduser"
+}
+
+### 🧾 Buyer Verification
+POST http://localhost:8000/buyer-verifications
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "stripe_verification_id": "verif_123"
+}
+
+### 🛎️ Notifications
+GET http://localhost:8000/notifications
+Authorization: Bearer {{token}}
+
+PATCH http://localhost:8000/notifications/1/read
+Authorization: Bearer {{token}}
+
+### 📦 Create Product
+POST http://localhost:8000/products
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Jordan 1 Retro",
+  "description": "Iconic sneakers.",
+  "category": "shoes",
+  "brand": "Nike"
+}
+
+### 📦 List Products
+GET http://localhost:8000/products
+Authorization: Bearer {{token}}
+
+### 📦 Create Offer
+POST http://localhost:8000/offers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "product_id": 1,
+  "price": 150,
+  "size": "42",
+  "condition": "neuf",
+  "quantity": 1
+}
+
+### 📦 List Offers
+GET http://localhost:8000/offers
+Authorization: Bearer {{token}}
+
+### 📈 Price Trends
+GET http://localhost:8000/price-trends/1
+Authorization: Bearer {{token}}
+
+### 🛒 Create Order
+POST http://localhost:8000/orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "offer_id": 1,
+  "shipping_address": {
+    "street": "123 Rue Exemple",
+    "city": "Paris",
+    "zip": "75000",
+    "country": "France"
+  }
+}
+
+### 📦 View Order Items
+GET http://localhost:8000/order-items/1
+Authorization: Bearer {{token}}
+
+### 📋 Buy Order
+POST http://localhost:8000/buy-orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "product_id": 1,
+  "size": "42",
+  "condition": "occasion",
+  "max_price": 120
+}
+
+### 🚚 Product Authentication
+POST http://localhost:8000/authentications
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "order_id": 1,
+  "verifier_id": 2
+}
+
+### 📣 Create Dispute
+POST http://localhost:8000/disputes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "order_id": 1,
+  "reason": "Produit non conforme"
+}
+
+### 🧾 Subscriptions
+GET http://localhost:8000/subscriptions
+Authorization: Bearer {{token}}
+
+POST http://localhost:8000/subscriptions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "type": "collection_tracking"
+}
+
+DELETE http://localhost:8000/subscriptions/1
+Authorization: Bearer {{token}}
+
+### 🔁 Trade Offers
+POST http://localhost:8000/trade-offers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "offered_product_id": 1,
+  "offered_size": "42",
+  "offered_condition": "neuf",
+  "requested_product_id": 2,
+  "requested_size": "43",
+  "requested_condition": "occasion"
+}
+
+GET http://localhost:8000/trade-offers
+Authorization: Bearer {{token}}
+
+### 🔁 Confirm Trade
+POST http://localhost:8000/trades/confirm
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "trade_offer_id_1": 1,
+  "trade_offer_id_2": 2
+}
+
+GET http://localhost:8000/trades/1
+Authorization: Bearer {{token}}
+
+### 📣 Create Auction
+POST http://localhost:8000/auctions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "product_id": 1,
+  "starting_price": 50,
+  "end_time": "2025-12-31T23:59:59"
+}
+
+GET http://localhost:8000/auctions
+Authorization: Bearer {{token}}
+
+### 💸 Place Bid
+POST http://localhost:8000/bids
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "auction_id": 1,
+  "amount": 75
+}
+
+### 📁 Collections
+POST http://localhost:8000/collections
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "product_id": 1,
+  "size": "42",
+  "condition": "neuf"
+}
+
+GET http://localhost:8000/collections
+Authorization: Bearer {{token}}
+
+DELETE http://localhost:8000/collections/1
+Authorization: Bearer {{token}}
+
+### 🔔 Search Alerts
+POST http://localhost:8000/search-alerts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "product_id": 1,
+  "size": "42",
+  "max_price": 120,
+  "condition": "occasion"
+}
+
+GET http://localhost:8000/search-alerts
+Authorization: Bearer {{token}}
+
+DELETE http://localhost:8000/search-alerts/1
+Authorization: Bearer {{token}}
+
+### 💳 Platform Fees
+GET http://localhost:8000/platform-fees
+Authorization: Bearer {{token}}
+
+PUT http://localhost:8000/platform-fees/commission
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "value": 10,
+  "is_percentage": true
+}

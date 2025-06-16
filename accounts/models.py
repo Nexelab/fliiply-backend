@@ -4,6 +4,10 @@ from django.utils import timezone
 
 
 class User(AbstractUser):
+    class Role(models.TextChoices):
+        PARTICULIER = 'particulier', 'Particulier'
+        PROFESSIONNEL = 'professionnel', 'Professionnel'
+
     is_buyer = models.BooleanField(default=True)
     is_seller = models.BooleanField(default=True)
     is_verifier = models.BooleanField(default=False)
@@ -30,6 +34,26 @@ class User(AbstractUser):
         blank=True,
         null=True,
         help_text="Date à laquelle l'utilisateur a accepté les conditions générales."
+    )
+    role = models.CharField(
+        max_length=20,
+        choices=Role.choices,
+        default=Role.PARTICULIER,
+        help_text="Définit le rôle de l'utilisateur (particulier ou professionnel)."
+    )
+    rating = models.FloatField(
+        default=0.0,
+        help_text="Note moyenne de l'utilisateur en tant que vendeur."
+    )
+    stripe_account_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Identifiant du compte Stripe de l'utilisateur."
+    )
+    is_kyc_verified = models.BooleanField(
+        default=False,
+        help_text="Indique si l'utilisateur a complété le KYC avec succès."
     )
 
     def __str__(self):

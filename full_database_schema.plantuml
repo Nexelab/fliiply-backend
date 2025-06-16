@@ -1,0 +1,271 @@
+@startuml
+
+!theme plain
+top to bottom direction
+skinparam linetype ortho
+
+' ------------------ USERS ------------------
+class Users {
+  +user_id: SERIAL PK
+  username: VARCHAR
+  email: VARCHAR UNIQUE
+  password_hash: VARCHAR
+  role: ENUM('anonyme', 'particulier', 'professionnel', 'staff', 'admin')
+  created_at: TIMESTAMP
+  is_verified: BOOLEAN
+  rating: FLOAT
+  stripe_account_id: VARCHAR
+}
+
+' ------------------ BUYER VERIFICATIONS ------------------
+class BuyerVerifications {
+  +verification_id: SERIAL PK
+  user_id: INTEGER FK -> Users
+  stripe_verification_id: VARCHAR
+  status: ENUM('pending', 'verified', 'failed')
+  created_at: TIMESTAMP
+  updated_at: TIMESTAMP
+}
+
+' ------------------ PRODUCTS ------------------
+class Products {
+  +product_id: SERIAL PK’
+  name: VARCHAR
+  description: TEXT
+  category: VARCHAR
+  brand: VARCHAR
+  images: TEXT[]
+  created_by: INTEGER FK -> Users
+  created_at: TIMESTAMP
+}
+
+' ------------------ OFFERS ------------------
+class Offers {
+  +offer_id: SERIAL PK
+  product_id: INTEGER FK -> Products
+  seller_id: INTEGER FK -> Users
+  price: DECIMAL
+  size: VARCHAR
+  condition: ENUM('neuf', 'occasion', 'abimé')
+  quantity: INTEGER
+  status: ENUM('pending', 'approved', 'reserved', 'sold')
+  images: TEXT[]
+  created_at: TIMESTAMP
+  approved_by: INTEGER FK -> Users
+  shipping_cost: DECIMAL
+  seller_location: VARCHAR
+  platform_fee: DECIMAL
+}
+
+' ------------------ ORDERS ------------------
+class Orders {
+  +order_id: SERIAL PK
+  offer_id: INTEGER FK -> Offers
+  buyer_id: INTEGER FK -> Users
+  status: ENUM('pending', 'shipped', 'delivered', 'cancelled')
+  shipping_address: JSONB
+  authentication_requested: BOOLEAN
+  total_price: DECIMAL
+  stripe_payment_intent_id: VARCHAR
+  created_at: TIMESTAMP
+  updated_at: TIMESTAMP
+  is_lot: BOOLEAN
+  lot_type: ENUM('same_seller', 'different_sellers', 'none')
+  platform_fee: DECIMAL
+  authentication_fee: DECIMAL
+}
+
+' ------------------ ORDER ITEMS ------------------
+class OrderItems {
+  +order_item_id: SERIAL PK
+  order_id: INTEGER FK -> Orders
+  offer_id: INTEGER FK -> Offers
+  price: DECIMAL
+  shipping_cost: DECIMAL
+  platform_fee: DECIMAL
+}
+
+' ------------------ BUY ORDERS ------------------
+class BuyOrders {
+  +buy_order_id: SERIAL PK
+  user_id: INTEGER FK -> Users
+  product_id: INTEGER FK -> Products
+  size: VARCHAR
+  condition: ENUM('neuf', 'occasion', 'abimé')
+  max_price: DECIMAL
+  status: ENUM('active', 'completed', 'cancelled')
+  created_at: TIMESTAMP
+  expires_at: TIMESTAMP
+  order_id: INTEGER FK -> Orders
+}
+
+' ------------------ AUTHENTICATIONS ------------------
+class Authentications {
+  +auth_id: SERIAL PK
+  order_id: INTEGER FK -> Orders
+  verifier_id: INTEGER FK -> Users
+  status: ENUM('pending', 'approved', 'rejected')
+  certificate: TEXT
+  created_at: TIMESTAMP
+  completed_at: TIMESTAMP
+}
+
+' ------------------ COLLECTIONS ------------------
+class Collections {
+  +collection_id: SERIAL PK
+  user_id: INTEGER FK -> Users
+  product_id: INTEGER FK -> Products
+  size: VARCHAR
+  condition: ENUM('neuf', 'occasion', 'abimé')
+  estimated_value: DECIMAL
+  added_at: TIMESTAMP
+}
+
+' ------------------ SEARCH ALERTS ------------------
+class SearchAlerts {
+  +alert_id: SERIAL PK
+  user_id: INTEGER FK -> Users
+  product_id: INTEGER FK -> Products
+  size: VARCHAR
+  max_price: DECIMAL
+  condition: ENUM('neuf', 'occasion', 'abimé')
+  created_at: TIMESTAMP
+}
+
+' ------------------ DISPUTES ------------------
+class Disputes {
+  +dispute_id: SERIAL PK
+  order_id: INTEGER FK -> Orders
+  reason: TEXT
+  status: ENUM('open', 'resolved', 'closed')
+  resolved_by: INTEGER FK -> Users
+  resolution: TEXT
+  created_at: TIMESTAMP
+  resolved_at: TIMESTAMP
+}
+
+' ------------------ NOTIFICATIONS ------------------
+class Notifications {
+  +notification_id: SERIAL PK
+  user_id: INTEGER FK -> Users
+  type: ENUM('order', 'offer', 'alert', 'dispute')
+  message: TEXT
+  is_read: BOOLEAN
+  created_at: TIMESTAMP
+}
+
+' ------------------ SUBSCRIPTIONS ------------------
+class Subscriptions {
+  +subscription_id: SERIAL PK
+  user_id: INTEGER FK -> Users
+  stripe_subscription_id: VARCHAR
+  type: ENUM('collection_tracking', 'search_alerts', 'price_trends', 'combined')
+  status: ENUM('active', 'canceled', 'past_due')
+  created_at: TIMESTAMP
+  updated_at: TIMESTAMP
+}
+
+' ------------------ PLATFORM FEES ------------------
+class PlatformFees {
+  +fee_id: SERIAL PK
+  type: ENUM('commission', 'authentication')
+  value: DECIMAL
+  is_percentage: BOOLEAN
+  created_at: TIMESTAMP
+  updated_at: TIMESTAMP
+}
+
+' ------------------ AUCTIONS ------------------
+class Auctions {
+  +auction_id: SERIAL PK
+  product_id: INTEGER FK -> Products
+  seller_id: INTEGER FK -> Users
+  starting_price: DECIMAL
+  current_price: DECIMAL
+  highest_bidder_id: INTEGER FK -> Users
+  start_time: TIMESTAMP
+  end_time: TIMESTAMP
+  status: ENUM('active', 'completed', 'cancelled')
+  platform_fee: DECIMAL
+  order_id: INTEGER FK -> Orders
+}
+
+' ------------------ BIDS ------------------
+class Bids {
+  +bid_id: SERIAL PK
+  auction_id: INTEGER FK -> Auctions
+  user_id: INTEGER FK -> Users
+  amount: DECIMAL
+  created_at: TIMESTAMP
+}
+
+' ------------------ TRADE OFFERS ------------------
+class TradeOffers {
+  +trade_offer_id: SERIAL PK
+  user_id: INTEGER FK -> Users
+  offered_product_id: INTEGER FK -> Products
+  offered_size: VARCHAR
+  offered_condition: ENUM('neuf', 'occasion', 'abimé')
+  requested_product_id: INTEGER FK -> Products
+  requested_size: VARCHAR
+  requested_condition: ENUM('neuf', 'occasion', 'abimé')
+  status: ENUM('active', 'matched', 'completed', 'cancelled')
+  created_at: TIMESTAMP
+}
+
+' ------------------ TRADES ------------------
+class Trades {
+  +trade_id: SERIAL PK
+  trade_offer_id_1: INTEGER FK -> TradeOffers
+  trade_offer_id_2: INTEGER FK -> TradeOffers
+  status: ENUM('pending', 'shipped', 'completed', 'cancelled')
+  created_at: TIMESTAMP
+  completed_at: TIMESTAMP
+}
+
+' ------------------ PRICE TRENDS ------------------
+class PriceTrends {
+  +trend_id: SERIAL PK
+  product_id: INTEGER FK -> Products
+  average_price: DECIMAL
+  predicted_price: DECIMAL
+  prediction_horizon: INTEGER
+  confidence_score: FLOAT
+  created_at: TIMESTAMP
+}
+
+' ------------------ RELATIONS ------------------
+Users --> BuyerVerifications
+Users --> Products
+Users --> Offers
+Users --> Orders
+Users --> BuyOrders
+Users --> Authentications
+Users --> Collections
+Users --> SearchAlerts
+Users --> Notifications
+Users --> Subscriptions
+Users --> Auctions
+Users --> Bids
+Users --> TradeOffers
+Users --> Trades
+
+Products --> Offers
+Products --> BuyOrders
+Products --> Collections
+Products --> SearchAlerts
+Products --> Auctions
+Products --> TradeOffers
+Products --> PriceTrends
+
+Offers --> Orders
+Orders --> OrderItems
+Orders --> Authentications
+Orders --> Disputes
+Orders --> BuyOrders
+Orders --> Auctions
+
+Auctions --> Bids
+TradeOffers --> Trades
+
+@enduml

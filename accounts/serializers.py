@@ -31,9 +31,13 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'username', 'email', 'password', 'phone_number', 'is_buyer',
-            'is_seller', 'is_verifier', 'billing_address', 'addresses', 'is_email_verified'
+            'is_seller', 'is_verifier', 'billing_address', 'addresses', 'is_email_verified',
+            'role', 'rating', 'stripe_account_id', 'is_kyc_verified'
         ]
-        read_only_fields = ['id', 'is_buyer', 'is_seller', 'is_verifier', 'is_email_verified']
+        read_only_fields = [
+            'id', 'is_buyer', 'is_seller', 'is_verifier', 'is_email_verified',
+                            'rating', 'stripe_account_id', 'is_kyc_verified'
+        ]
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
@@ -59,7 +63,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'confirm_password', 'phone_number', 'accept_terms', 'subscribed_to_newsletter']
+        fields = ['username', 'email', 'password', 'confirm_password', 'phone_number', 'accept_terms', 'subscribed_to_newsletter', 'role']
         extra_kwargs = {
             'phone_number': {'required': False},  # Assurer que phone_number est facultatif
         }
@@ -79,6 +83,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         # Supprimer les champs temporaires
         validated_data.pop('confirm_password')
         validated_data.pop('accept_terms')
+        role = validated_data.pop('role', User.Role.PARTICULIER)
 
         # Créer l'utilisateur
         user = User.objects.create_user(
@@ -88,6 +93,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             phone_number=validated_data.get('phone_number', None),  # Facultatif
             subscribed_to_newsletter=validated_data.get('subscribed_to_newsletter', False),
             accepted_terms=True,
-            accepted_terms_at=timezone.now()
+            accepted_terms_at=timezone.now(),
+            role = role
         )
         return user

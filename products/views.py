@@ -17,7 +17,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             permission_classes = [IsAdminUser]
         else:
-            permission_classes = [IsAuthenticated]
+            permission_classes = []
         return [permission() for permission in permission_classes]
 
     @swagger_auto_schema(
@@ -52,7 +52,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         if self.action in ['create', 'update', 'partial_update', 'destroy', 'add_image']:
             permission_classes = [IsAdminUser]
         else:
-            permission_classes = [IsAuthenticated]
+            permission_classes = []
         return [permission() for permission in permission_classes]
 
     @swagger_auto_schema(

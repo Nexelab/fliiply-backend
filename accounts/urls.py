@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import UserViewSet, RegisterView, ChangeRoleView, CustomTokenObtainPairView, AddressViewSet, \
-    PasswordResetRequestView, PasswordResetConfirmView, VerifyEmailView, ResendVerificationEmailView
+    PasswordResetRequestView, PasswordResetConfirmView, VerifyEmailView, ResendVerificationEmailView, VerifyKYCView
 
 # Router pour les opérations CRUD sur les utilisateurs
 router = DefaultRouter()
@@ -25,4 +25,5 @@ auth_patterns = [
 user_patterns = [
     path('', include(router.urls)),  # CRUD sur les utilisateurs
     path('<int:user_id>/role/', ChangeRoleView.as_view(), name='change-role'),
+    path('accounts/kyc/verify/<int:user_id>/', VerifyKYCView.as_view(), name='verify-kyc'),
 ]

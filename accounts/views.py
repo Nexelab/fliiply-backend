@@ -432,3 +432,41 @@ class ResendVerificationEmailView(APIView):
         )
 
         return Response({'message': 'Verification email resent successfully'}, status=status.HTTP_200_OK)
+
+class VerifyKYCView(APIView):
+    permission_classes = [IsAdminUser]
+
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                'user_id',
+                openapi.IN_PATH,
+                type=openapi.TYPE_INTEGER,
+                description="ID de l'utilisateur à marquer comme vérifié KYC",
+                required=True
+            )
+        ],
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'is_kyc_verified': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                }
+            ),
+            404: "User Not Found",
+            403: "Forbidden"
+        },
+        operation_description="Marquer un utilisateur comme ayant complété le KYC (admin seulement)."
+    )
+    def post(self, request, user_id):
+        try:
+            user = User.objects.get(pk=user_id)
+            user.is_kyc_verified = True
+            user.save()
+            return Response({
+                "message": f"Utilisateur {user.username} marqué comme vérifié KYC.",
+                "is_kyc_verified": user.is_kyc_verified
+            }, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({"error": "Utilisateur non trouvé."}, status=status.HTTP_404_NOT_FOUND)
