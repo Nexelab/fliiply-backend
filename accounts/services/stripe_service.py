@@ -1,23 +1,17 @@
 import stripe
-
 from decimal import Decimal
 from django.conf import settings
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
-
-def should_trigger_kyc(user):
-    if user.is_kyc_verified:
-        return False
-    if user.role == 'professionnel':
-        return True
-    if user.role == 'particulier' and user.total_sales_amount >= Decimal('5000.00'):
-        return True
-    return False
-
 def create_stripe_account(user):
+    """
+    Crée un compte Stripe Express si non existant et le rattache à l'utilisateur.
+    """
     if user.stripe_account_id:
         return user.stripe_account_id
+
+    print(user.role)
 
     account = stripe.Account.create(
         type="express",
@@ -38,7 +32,7 @@ def generate_account_link(user):
 
     return stripe.AccountLink.create(
         account=account_id,
-        refresh_url="https://xyz.ngrok.io/api/stripe/onboarding/refresh",
-        return_url = "https://xyz.ngrok.io/api/stripe/onboarding/complete",
+        refresh_url=settings.STRIPE_ONBOARDING_REFRESH_URL,
+        return_url=settings.STRIPE_ONBOARDING_RETURN_URL,
         type="account_onboarding",
     ).url

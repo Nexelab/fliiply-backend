@@ -8,8 +8,14 @@ class User(AbstractUser):
         PARTICULIER = 'particulier', 'Particulier'
         PROFESSIONNEL = 'professionnel', 'Professionnel'
 
+    class StripeStatus(models.TextChoices):
+        VERIFIED = "verified", "Vérifié"
+        INCOMPLETE = "incomplete", "Incomplet"
+        PENDING = "pending", "En attente"
+        RESTRICTED = "restricted", "Restreint"
+
     is_buyer = models.BooleanField(default=True)
-    is_seller = models.BooleanField(default=True)
+    is_seller = models.BooleanField(default=False)
     is_verifier = models.BooleanField(default=False)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     billing_address = models.OneToOneField(
@@ -51,15 +57,17 @@ class User(AbstractUser):
         null=True,
         help_text="Identifiant du compte Stripe de l'utilisateur."
     )
+    stripe_account_status = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        choices=StripeStatus.choices,
+        default=StripeStatus.INCOMPLETE,
+        help_text="État actuel du compte Stripe (par ex. 'incomplete', 'completed', 'verified', etc.)"
+    )
     is_kyc_verified = models.BooleanField(
         default=False,
         help_text="Indique si l'utilisateur a complété le KYC avec succès."
-    )
-    total_sales_amount = models.DecimalField(
-        default=0.0,
-        max_digits=10,
-        decimal_places=2,
-        help_text="Montant total des ventes réalisées par l'utilisateur."
     )
 
     def __str__(self):

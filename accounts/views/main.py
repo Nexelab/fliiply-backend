@@ -20,6 +20,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from accounts.models import User, Address
 from accounts.serializers import UserSerializer, AddressSerializer, UserRegisterSerializer
 from accounts.permissions import IsOwner, IsEmailVerified
+from accounts.services import create_stripe_account, generate_account_link
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     permission_classes = [AllowAny]
@@ -96,6 +97,11 @@ class RegisterView(APIView):
                 'confirm_password': openapi.Schema(type=openapi.TYPE_STRING, description='Confirmation of the password'),
                 'accept_terms': openapi.Schema(type=openapi.TYPE_BOOLEAN, description='Whether the user accepts the terms and conditions'),
                 'subscribed_to_newsletter': openapi.Schema(type=openapi.TYPE_BOOLEAN, description='Whether the user wants to subscribe to the newsletter'),
+                'role': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    enum=['particulier', 'professionnel'],
+                    description='Rôle de l’utilisateur (particulier ou professionnel)'
+                ),
             },
         ),
         responses={
@@ -181,18 +187,28 @@ class ChangeRoleView(APIView):
     def patch(self, request, user_id):
         try:
             user = User.objects.get(id=user_id)
+
             is_buyer = request.data.get('is_buyer', user.is_buyer)
             is_seller = request.data.get('is_seller', user.is_seller)
             is_verifier = request.data.get('is_verifier', user.is_verifier)
+
             user.is_buyer = is_buyer
             user.is_seller = is_seller
             user.is_verifier = is_verifier
             user.save()
-            return Response({
+
+            response_data = {
                 'is_buyer': user.is_buyer,
                 'is_seller': user.is_seller,
                 'is_verifier': user.is_verifier
-            }, status=status.HTTP_200_OK)
+            }
+
+            if user.role == User.Role.PARTICULIER and user.is_seller:
+                create_stripe_account(user)
+                onboarding_url = generate_account_link(user)
+                response_data['onboarding_url'] = onboarding_url
+
+            return Response(response_data, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 

@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from .models import User, Address
+from accounts.services import create_stripe_account
 
 User = get_user_model()
 
@@ -35,8 +36,8 @@ class UserSerializer(serializers.ModelSerializer):
             'role', 'rating', 'stripe_account_id', 'is_kyc_verified'
         ]
         read_only_fields = [
-            'id', 'is_buyer', 'is_seller', 'is_verifier', 'is_email_verified',
-                            'rating', 'stripe_account_id', 'is_kyc_verified'
+            'id', 'is_buyer', 'is_verifier', 'is_email_verified',
+            'rating', 'stripe_account_id', 'is_kyc_verified'
         ]
         extra_kwargs = {'password': {'write_only': True}}
 
@@ -51,6 +52,8 @@ class UserSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
         user = super().update(instance, validated_data)
+        if validated_data.get('is_seller') and not user.stripe_account_id:
+            create_stripe_account(user)
         if password:
             user.set_password(password)
             user.save()
@@ -90,10 +93,20 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             username=validated_data['username'],
             email=validated_data['email'],
             password=validated_data['password'],
-            phone_number=validated_data.get('phone_number', None),  # Facultatif
+            phone_number=validated_data.get('phone_number', None),
             subscribed_to_newsletter=validated_data.get('subscribed_to_newsletter', False),
             accepted_terms=True,
             accepted_terms_at=timezone.now(),
             role = role
         )
+
+        if role == User.Role.PROFESSIONNEL:
+            user.is_seller = True
+            user.is_buyer = True
+            create_stripe_account(user)
+        else:
+            user.is_seller = False  # Particulier ne peut pas vendre au départ
+            user.is_buyer = True
+
+        user.save()
         return user

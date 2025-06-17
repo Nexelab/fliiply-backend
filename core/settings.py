@@ -12,10 +12,11 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 from datetime import timedelta
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+load_dotenv(BASE_DIR / ".env")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
@@ -26,7 +27,11 @@ SECRET_KEY = '5qjl+e^jhs)7gqo!iako!p^a5bc!(j@@^xa*)@#_70__zh3a7p'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
+ngrok_host = os.getenv("NGROK_HOST")
+if ngrok_host:
+    ALLOWED_HOSTS.append(ngrok_host)
+
 
 # MinIO Configuration (compatible avec S3 API)
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID', 'BCYE5fnrcZhmaofhNhEl')
@@ -47,6 +52,8 @@ DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
+STRIPE_ONBOARDING_REFRESH_URL = os.getenv('STRIPE_ONBOARDING_REFRESH_URL')
+STRIPE_ONBOARDING_RETURN_URL = os.getenv('STRIPE_ONBOARDING_RETURN_URL')
 
 # Application definition
 
