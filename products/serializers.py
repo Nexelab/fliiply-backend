@@ -1,6 +1,10 @@
 from rest_framework import serializers
-from .models import Product, Category, PriceHistory, ProductImage
-from django.db.models import Q
+from .models import (
+    Category, Language, Version, Condition, Grade,
+    Product, ProductImage, Variant, Listing
+)
+
+# --- Base Serializers ---
 
 class CategorySerializer(serializers.ModelSerializer):
     parent = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), allow_null=True, required=False)
@@ -11,19 +15,30 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'slug', 'description', 'parent', 'children']
         read_only_fields = ['slug', 'children']
 
-    def validate_name(self, value):
-        if not value:
-            raise serializers.ValidationError("Category name cannot be empty.")
-        return value
-
-    def validate_parent(self, value):
-        if value and self.instance and value == self.instance:
-            raise serializers.ValidationError("A category cannot be its own parent.")
-        return value
-
     def get_children(self, obj):
-        children = obj.children.all()
-        return CategorySerializer(children, many=True, context=self.context).data
+        return CategorySerializer(obj.children.all(), many=True).data
+
+class LanguageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Language
+        fields = ['id', 'code', 'name']
+
+class VersionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Version
+        fields = ['id', 'code', 'name', 'tcg_types', 'description', 'displayable']
+
+class ConditionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Condition
+        fields = ['id', 'code', 'label']
+
+class GradeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Grade
+        fields = ['id', 'value']
+
+# --- Product and Related ---
 
 class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -31,40 +46,37 @@ class ProductImageSerializer(serializers.ModelSerializer):
         fields = ['id', 'image', 'alt_text', 'created_at']
         read_only_fields = ['created_at']
 
-class PriceHistorySerializer(serializers.ModelSerializer):
+class VariantSerializer(serializers.ModelSerializer):
+    language = LanguageSerializer(read_only=True)
+    version = VersionSerializer(read_only=True)
+    condition = ConditionSerializer(read_only=True)
+    grade = GradeSerializer(read_only=True)
+
     class Meta:
-        model = PriceHistory
-        fields = ['price', 'recorded_at']
-        read_only_fields = ['recorded_at']
+        model = Variant
+        fields = ['id', 'product', 'language', 'version', 'condition', 'grade']
 
 class ProductSerializer(serializers.ModelSerializer):
     categories = CategorySerializer(many=True, read_only=True)
-    categories_ids = serializers.PrimaryKeyRelatedField(
-        queryset=Category.objects.all(), many=True, write_only=True, source='categories'
-    )
+    categories_ids = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), many=True, write_only=True, source='categories')
+    allowed_languages = LanguageSerializer(many=True, read_only=True)
+    allowed_languages_ids = serializers.PrimaryKeyRelatedField(queryset=Language.objects.all(), many=True, write_only=True, source='allowed_languages')
+    allowed_versions = VersionSerializer(many=True, read_only=True)
+    allowed_versions_ids = serializers.PrimaryKeyRelatedField(queryset=Version.objects.all(), many=True, write_only=True, source='allowed_versions')
     images = ProductImageSerializer(many=True, read_only=True)
-    price_histories = PriceHistorySerializer(many=True, read_only=True)
-    similar_products = serializers.SerializerMethodField()
     average_price = serializers.SerializerMethodField()
     total_stock = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'series', 'collection', 'description', 'tcg_type', 'language',
-            'average_price', 'total_stock', 'categories', 'categories_ids',
-            'images', 'created_at', 'updated_at', 'price_histories', 'similar_products'
+            'id', 'name', 'block', 'series', 'description', 'tcg_type', 'slug',
+            'categories', 'categories_ids',
+            'allowed_languages', 'allowed_languages_ids',
+            'allowed_versions', 'allowed_versions_ids',
+            'images', 'average_price', 'total_stock', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['created_at', 'updated_at', 'average_price', 'total_stock']
-
-    def get_similar_products(self, obj):
-        similar_products = Product.objects.filter(
-            Q(categories__in=obj.categories.all()) |
-            Q(tcg_type=obj.tcg_type) |
-            Q(language=obj.language) |
-            Q(series=obj.series)
-        ).exclude(id=obj.id).distinct()[:5]
-        return ProductSerializer(similar_products, many=True, context=self.context).data
+        read_only_fields = ['id', 'slug', 'created_at', 'updated_at', 'average_price', 'total_stock']
 
     def get_average_price(self, obj):
         return obj.calculate_average_price()
@@ -74,13 +86,31 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         categories = validated_data.pop('categories', [])
+        allowed_languages = validated_data.pop('allowed_languages', [])
+        allowed_versions = validated_data.pop('allowed_versions', [])
         product = Product.objects.create(**validated_data)
         product.categories.set(categories)
+        product.allowed_languages.set(allowed_languages)
+        product.allowed_versions.set(allowed_versions)
         return product
 
     def update(self, instance, validated_data):
         categories = validated_data.pop('categories', None)
+        allowed_languages = validated_data.pop('allowed_languages', None)
+        allowed_versions = validated_data.pop('allowed_versions', None)
         instance = super().update(instance, validated_data)
         if categories is not None:
             instance.categories.set(categories)
+        if allowed_languages is not None:
+            instance.allowed_languages.set(allowed_languages)
+        if allowed_versions is not None:
+            instance.allowed_versions.set(allowed_versions)
         return instance
+
+class ListingSerializer(serializers.ModelSerializer):
+    variant = VariantSerializer(read_only=True)
+
+    class Meta:
+        model = Listing
+        fields = ['id', 'product', 'variant', 'seller', 'price', 'stock', 'status', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
