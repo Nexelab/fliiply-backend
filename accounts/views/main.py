@@ -83,6 +83,29 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def become_seller(self, request):
+        user = request.user
+
+        if user.is_seller:
+            return Response({'message': 'Vous êtes déjà vendeur.'}, status=status.HTTP_200_OK)
+
+        # Met à jour les rôles
+        user.is_seller = True
+        user.save()
+
+        # Crée un compte Stripe s’il n’existe pas
+        if not user.stripe_account_id:
+            create_stripe_account(user)
+
+        # Génère le lien d’onboarding
+        onboarding_url = generate_account_link(user)
+
+        return Response({
+            'message': 'Vous êtes maintenant vendeur.',
+            'stripe_onboarding_url': onboarding_url
+        }, status=status.HTTP_200_OK)
+
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
