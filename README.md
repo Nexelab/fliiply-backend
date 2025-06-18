@@ -63,6 +63,12 @@ When using Docker you can run the suite inside the container:
 docker compose run web pytest
 ```
 
+## Search suggestions
+
+`GET /api/search/suggestions/?query=<text>` returns an array of suggestion strings
+matching the given query. Suggestions are pulled from product names, series and
+block fields and may include frequent search terms.
+
 ## Search endpoint
 
 The `/api/search/` URL returns active listings matching a query. Example:
