@@ -1,13 +1,19 @@
 from rest_framework import viewsets
+from decimal import Decimal
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework import serializers
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from .models import Order, Offer
-from .serializers import OrderSerializer, OfferSerializer
+from .models import Order, Offer, CartItem
+from accounts.services import create_payment_intent
+from django.conf import settings
+from .serializers import OrderSerializer, OfferSerializer, CartItemSerializer
 from accounts.permissions import IsBuyer, IsSeller
 from accounts.models import Address
 from django.contrib.auth import get_user_model
+from django.utils import timezone
+from django.db.models import Q
+from datetime import timedelta
 
 User = get_user_model()
 
@@ -37,10 +43,16 @@ class OfferViewSet(viewsets.ModelViewSet):
         if not user.is_authenticated:
             return Offer.objects.none()
 
+        now = timezone.now()
+        base_qs = Offer.objects.filter(
+            Q(cart_items__isnull=True) |
+            Q(cart_items__buyer=user) |
+            Q(cart_items__reserved_until__lte=now)
+        )
         if user.is_buyer:
-            return Offer.objects.filter(offer_type=Offer.OFFER_TYPE_SELL, status='pending')
+            return base_qs.filter(offer_type=Offer.OFFER_TYPE_SELL, status='pending').distinct()
         elif user.is_seller:
-            return Offer.objects.filter(offer_type=Offer.OFFER_TYPE_BUY, status='pending')
+            return base_qs.filter(offer_type=Offer.OFFER_TYPE_BUY, status='pending').distinct()
         return Offer.objects.none()
 
     @swagger_auto_schema(
@@ -84,6 +96,34 @@ class OfferViewSet(viewsets.ModelViewSet):
         if offer.user != self.request.user:
             raise serializers.ValidationError("Only the creator of the offer can update it.")
         serializer.save()
+
+
+class CartItemViewSet(viewsets.ModelViewSet):
+    serializer_class = CartItemSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return CartItem.objects.none()
+        user = self.request.user
+        now = timezone.now()
+        # Clean expired reservations
+        CartItem.objects.filter(reserved_until__lt=now).delete()
+        return CartItem.objects.filter(buyer=user)
+
+    def perform_create(self, serializer):
+        offer_id = self.request.data.get('offer')
+        quantity = int(self.request.data.get('quantity', 1))
+        try:
+            offer = Offer.objects.get(id=offer_id, status='pending')
+        except Offer.DoesNotExist:
+            raise serializers.ValidationError('Invalid offer')
+        now = timezone.now()
+        if CartItem.objects.filter(offer=offer, reserved_until__gt=now).exclude(buyer=self.request.user).exists():
+            raise serializers.ValidationError('Offer is reserved')
+        reserved_until = now + timedelta(minutes=getattr(settings, 'CART_RESERVATION_MINUTES', 30))
+        serializer.save(buyer=self.request.user, offer=offer, quantity=quantity, reserved_until=reserved_until)
+
 
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all()
@@ -407,12 +447,15 @@ class OrderViewSet(viewsets.ModelViewSet):
         base_price = offer.price * quantity
         buyer_processing_fee = max(base_price * 0.06, 5.00)
         buyer_shipping_fee = 10.00
-        buyer_total_price = base_price + buyer_processing_fee + buyer_shipping_fee
+        platform_commission = base_price * Decimal(str(getattr(settings, 'PLATFORM_COMMISSION_PERCENT', 0.05)))
+        buyer_total_price = base_price + buyer_processing_fee + buyer_shipping_fee + platform_commission
 
         seller_transaction_fee = max(base_price * 0.09, 5.00)
         seller_processing_fee = base_price * 0.03
         seller_shipping_fee = buyer_shipping_fee
-        seller_net_amount = base_price - seller_transaction_fee - seller_processing_fee - seller_shipping_fee
+        seller_net_amount = base_price - seller_transaction_fee - seller_processing_fee - seller_shipping_fee - platform_commission
+
+        payment_intent = create_payment_intent(buyer, buyer_total_price)
 
         # Mettre à jour le stock si c'est une offre de vente
         if offer.offer_type == Offer.OFFER_TYPE_SELL:
@@ -422,6 +465,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         # Mettre à jour le statut de l'offre
         offer.status = 'accepted'
         offer.save()
+
+        # Remove reservation from cart if exists
+        CartItem.objects.filter(buyer=buyer, offer=offer).delete()
 
         # Créer la commande
         serializer.save(
@@ -436,7 +482,9 @@ class OrderViewSet(viewsets.ModelViewSet):
             seller_transaction_fee=seller_transaction_fee,
             seller_processing_fee=seller_processing_fee,
             seller_shipping_fee=seller_shipping_fee,
-            seller_net_amount=seller_net_amount
+            seller_net_amount=seller_net_amount,
+            platform_commission=platform_commission,
+            stripe_payment_intent_id=payment_intent.id,
         )
 
     def perform_update(self, serializer):

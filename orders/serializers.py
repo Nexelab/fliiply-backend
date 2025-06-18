@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Order, Offer
+from .models import Order, Offer, CartItem
 from accounts.serializers import UserSerializer, AddressSerializer
 from products.serializers import ProductSerializer
 
@@ -84,11 +84,13 @@ class OrderSerializer(serializers.ModelSerializer):
             'buyer_address', 'seller_address',
             'buyer_processing_fee', 'buyer_shipping_fee', 'buyer_total_price',
             'seller_transaction_fee', 'seller_processing_fee', 'seller_shipping_fee', 'seller_net_amount',
+            'platform_commission', 'stripe_payment_intent_id',
             'status', 'created_at', 'updated_at'
         ]
         read_only_fields = [
             'base_price', 'buyer_processing_fee', 'buyer_shipping_fee', 'buyer_total_price',
             'seller_transaction_fee', 'seller_processing_fee', 'seller_shipping_fee', 'seller_net_amount',
+            'platform_commission', 'stripe_payment_intent_id',
             'created_at', 'updated_at'
         ]
 
@@ -109,3 +111,14 @@ class OrderSerializer(serializers.ModelSerializer):
         if value.user != self.context['request'].user:
             raise serializers.ValidationError("Buyer address must belong to the buyer.")
         return value
+
+
+class CartItemSerializer(serializers.ModelSerializer):
+    offer = OfferSerializer(read_only=True)
+
+    class Meta:
+        model = CartItem
+        fields = [
+            'id', 'offer', 'quantity', 'reserved_until', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['reserved_until', 'created_at', 'updated_at']

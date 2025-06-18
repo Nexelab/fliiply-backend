@@ -21,6 +21,7 @@ from accounts.models import User, Address
 from accounts.serializers import UserSerializer, AddressSerializer, UserRegisterSerializer
 from accounts.permissions import IsOwner, IsEmailVerified
 from accounts.services import create_stripe_account, generate_account_link
+from accounts.services import create_setup_intent, create_subscription
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     permission_classes = [AllowAny]
@@ -509,3 +510,38 @@ class VerifyKYCView(APIView):
             }, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({"error": "Utilisateur non trouvé."}, status=status.HTTP_404_NOT_FOUND)
+
+
+class StripeSetupIntentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        responses={200: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={'client_secret': openapi.Schema(type=openapi.TYPE_STRING)},
+        )},
+        operation_description="Génère un SetupIntent Stripe pour enregistrer une carte."
+    )
+    def post(self, request):
+        client_secret = create_setup_intent(request.user)
+        return Response({'client_secret': client_secret})
+
+
+class StripeSubscriptionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['price_id'],
+            properties={'price_id': openapi.Schema(type=openapi.TYPE_STRING)},
+        ),
+        responses={200: openapi.Schema(type=openapi.TYPE_OBJECT, properties={'subscription_id': openapi.Schema(type=openapi.TYPE_STRING)})},
+        operation_description="Crée un abonnement Stripe pour les fonctionnalités premium."
+    )
+    def post(self, request):
+        price_id = request.data.get('price_id')
+        if not price_id:
+            return Response({'error': 'price_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        subscription_id = create_subscription(request.user, price_id)
+        return Response({'subscription_id': subscription_id})
