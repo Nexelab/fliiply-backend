@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import serializers
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from .models import Order, CartItem
+from .models import Order, CartItem, OrderItem
 from accounts.services import create_payment_intent
 from django.conf import settings
 from .serializers import OrderSerializer, CartItemSerializer
@@ -71,7 +71,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         if user.is_buyer:
             return Order.objects.filter(buyer=user)
         elif user.is_seller:
-            return Order.objects.filter(seller=user)
+            return Order.objects.filter(items__listing__seller=user).distinct()
         return Order.objects.none()
 
     @swagger_auto_schema(
@@ -191,10 +191,13 @@ class OrderViewSet(viewsets.ModelViewSet):
         operation_description="Create a new order (buyers only).",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            required=['listing', 'quantity', 'buyer_address'],
+            required=['cart_items', 'buyer_address'],
             properties={
-                'listing': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the listing to purchase'),
-                'quantity': openapi.Schema(type=openapi.TYPE_INTEGER, description='Quantity of items to order', default=1),
+                'cart_items': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Items(type=openapi.TYPE_INTEGER),
+                    description='IDs of the cart items to order'
+                ),
                 'buyer_address': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the buyer’s address for shipping')
             }
         ),
@@ -320,84 +323,60 @@ class OrderViewSet(viewsets.ModelViewSet):
         return super().retrieve(request, *args, **kwargs)
 
     def perform_create(self, serializer):
-        listing_id = self.request.data.get('listing')
-        quantity = int(self.request.data.get('quantity', 1))
+        cart_item_ids = self.request.data.get('cart_items', [])
+        if isinstance(cart_item_ids, str):
+            cart_item_ids = [i for i in cart_item_ids.split(',') if i]
         buyer_address_id = self.request.data.get('buyer_address')
 
-        # Récupérer la listing
-        from products.models import Listing
-        listing = Listing.objects.get(id=listing_id)
+        if not cart_item_ids:
+            raise serializers.ValidationError('No cart items provided.')
 
-        # Vérifier les données
-        if listing.status != 'active':
-            raise serializers.ValidationError("Listing is not available.")
+        cart_items = list(CartItem.objects.filter(id__in=cart_item_ids, buyer=self.request.user))
+        if len(cart_items) != len(cart_item_ids):
+            raise serializers.ValidationError('Invalid cart items.')
 
-        # Déterminer le vendeur et l'acheteur
-        if not self.request.user.is_buyer:
-            raise serializers.ValidationError("Only buyers can create orders.")
-        seller = listing.seller
         buyer = self.request.user
-        if listing.stock < quantity:
-            raise serializers.ValidationError("Not enough stock available.")
+        if not buyer.is_buyer:
+            raise serializers.ValidationError('Only buyers can create orders.')
 
-        # Récupérer l'adresse de l'acheteur
         try:
             buyer_address = Address.objects.get(id=buyer_address_id, user=buyer)
         except Address.DoesNotExist:
-            raise serializers.ValidationError("Invalid buyer address.")
+            raise serializers.ValidationError('Invalid buyer address.')
 
-        # Récupérer l'adresse du vendeur
-        try:
-            seller_address = Address.objects.filter(user=seller).first()
-            if not seller_address:
-                raise serializers.ValidationError("Seller has no address.")
-        except Address.DoesNotExist:
-            raise serializers.ValidationError("Seller has no address.")
-
-        # Calculer les frais
-        base_price = listing.price * quantity
-        buyer_processing_fee = max(base_price * 0.06, 5.00)
-        buyer_shipping_fee = 10.00
+        base_price = sum(item.listing.price * item.quantity for item in cart_items)
+        buyer_processing_fee = max(base_price * Decimal('0.06'), Decimal('5.00'))
+        buyer_shipping_fee = Decimal('10.00')
         platform_commission = base_price * Decimal(str(getattr(settings, 'PLATFORM_COMMISSION_PERCENT', 0.05)))
         buyer_total_price = base_price + buyer_processing_fee + buyer_shipping_fee + platform_commission
 
-        seller_transaction_fee = max(base_price * 0.09, 5.00)
-        seller_processing_fee = base_price * 0.03
-        seller_shipping_fee = buyer_shipping_fee
-        seller_net_amount = base_price - seller_transaction_fee - seller_processing_fee - seller_shipping_fee - platform_commission
-
         payment_intent = create_payment_intent(buyer, buyer_total_price)
 
-        # Mettre à jour le stock si c'est une offre de vente
-        listing.stock -= quantity
-        listing.save()
-
-        # Mettre à jour le statut de l'offre
-
-
-        # Remove reservation from cart if exists
-        CartItem.objects.filter(buyer=buyer, listing=listing).delete()
-
-        # Créer la commande
-        serializer.save(
+        order = serializer.save(
             buyer=buyer,
-            seller=seller,
             base_price=base_price,
             buyer_address=buyer_address,
-            seller_address=seller_address,
             buyer_processing_fee=buyer_processing_fee,
             buyer_shipping_fee=buyer_shipping_fee,
             buyer_total_price=buyer_total_price,
-            seller_transaction_fee=seller_transaction_fee,
-            seller_processing_fee=seller_processing_fee,
-            seller_shipping_fee=seller_shipping_fee,
-            seller_net_amount=seller_net_amount,
             platform_commission=platform_commission,
             stripe_payment_intent_id=payment_intent.id,
-            listing=listing,
         )
 
+        for cart_item in cart_items:
+            listing = cart_item.listing
+            if listing.status != 'active' or listing.stock < cart_item.quantity:
+                raise serializers.ValidationError('Listing unavailable.')
+            listing.stock -= cart_item.quantity
+            listing.save()
+            OrderItem.objects.create(order=order, listing=listing, quantity=cart_item.quantity)
+            cart_item.delete()
+
     def perform_update(self, serializer):
-        order = serializer.save()
-        if order.seller != self.request.user:
-            raise serializers.ValidationError("Only the seller can update this order.")
+        order = self.get_object()
+        if not (
+            self.request.user == order.buyer or
+            order.items.filter(listing__seller=self.request.user).exists()
+        ):
+            raise serializers.ValidationError("You cannot update this order.")
+        serializer.save()

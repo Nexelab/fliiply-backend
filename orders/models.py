@@ -20,17 +20,12 @@ class CartItem(models.Model):
 
 class Order(models.Model):
     buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
-    seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sold_orders')  # Ajouté
-    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name='orders')
-    quantity = models.PositiveIntegerField(default=1)
 
     # Adresses
     buyer_address = models.ForeignKey('accounts.Address', on_delete=models.SET_NULL, null=True,
                                       related_name='buyer_orders')
-    seller_address = models.ForeignKey('accounts.Address', on_delete=models.SET_NULL, null=True,
-                                       related_name='seller_orders')
 
-    # Prix de base (listing.price * quantity)
+    # Prix de base (somme des listings)
     base_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     # Frais pour l'acheteur
@@ -38,11 +33,6 @@ class Order(models.Model):
     buyer_shipping_fee = models.DecimalField(max_digits=10, decimal_places=2)
     buyer_total_price = models.DecimalField(max_digits=10, decimal_places=2)
 
-    # Frais pour le vendeur
-    seller_transaction_fee = models.DecimalField(max_digits=10, decimal_places=2)
-    seller_processing_fee = models.DecimalField(max_digits=10, decimal_places=2)
-    seller_shipping_fee = models.DecimalField(max_digits=10, decimal_places=2)
-    seller_net_amount = models.DecimalField(max_digits=10, decimal_places=2)
 
     platform_commission = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     stripe_payment_intent_id = models.CharField(max_length=255, blank=True, null=True)
@@ -57,4 +47,13 @@ class Order(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Order {self.id} by {self.buyer.username} for {self.listing.product.name}"
+        return f"Order {self.id} by {self.buyer.username}"
+
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
+    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="order_items")
+    quantity = models.PositiveIntegerField(default=1)
+
+    def __str__(self):
+        return f"{self.quantity}x {self.listing} in order {self.order_id}"
