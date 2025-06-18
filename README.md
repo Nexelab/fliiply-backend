@@ -63,6 +63,15 @@ When using Docker you can run the suite inside the container:
 docker compose run web pytest
 ```
 
+## Search history maintenance
+
+Old search queries can accumulate over time. Periodically run the following
+management command (for example via cron) to keep only the latest 50 searches
+per user:
+
+```bash
+python manage.py clean_search_history
+```
 ## Search suggestions
 
 `GET /api/search/suggestions/?query=<text>` returns an array of suggestion strings
