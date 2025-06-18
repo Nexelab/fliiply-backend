@@ -16,9 +16,12 @@ Content-Type: application/json
   "username": "testuser",
   "password": "strongpass123"
 }
+> {%
+  client.global.set("token", response.body.access);
+  client.global.set("refresh", response.body.refresh);
+%}
 
-### 🧪 Set JWT token below before running other requests
-# @token = paste_your_token_here
+### 🧪 Token automatically stored after login
 
 ### 👤 Get current user
 GET http://localhost:8000/users/me
@@ -253,3 +256,74 @@ Content-Type: application/json
   "value": 10,
   "is_percentage": true
 }
+
+### 🔄 Refresh JWT Token
+POST http://localhost:8000/auth/refresh
+Content-Type: application/json
+
+{
+  "refresh": "{{refresh}}"
+}
+
+### 📫 Addresses
+GET http://localhost:8000/addresses
+Authorization: Bearer {{token}}
+
+POST http://localhost:8000/addresses
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "street": "1 rue de test",
+  "city": "Paris",
+  "zip_code": "75000",
+  "country": "France"
+}
+
+### 🗂 Categories
+GET http://localhost:8000/categories
+
+### 🗣 Languages
+GET http://localhost:8000/languages
+
+### 🔢 Versions
+GET http://localhost:8000/versions
+
+### 📋 Conditions
+GET http://localhost:8000/conditions
+
+### 🏆 Grades
+GET http://localhost:8000/grades
+
+### 🔀 Variants
+GET http://localhost:8000/variants
+
+### 📃 Listings
+POST http://localhost:8000/listings
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "product": 1,
+  "price": 100,
+  "quantity": 1,
+  "seller": 1
+}
+
+GET http://localhost:8000/listings
+
+### 🛒 Cart
+POST http://localhost:8000/cart
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "listing": 1,
+  "quantity": 1
+}
+
+GET http://localhost:8000/cart
+Authorization: Bearer {{token}}
+
+DELETE http://localhost:8000/cart/1
+Authorization: Bearer {{token}}
