@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from accounts.permissions import IsPremiumUser
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -145,7 +146,7 @@ class ListingViewSet(viewsets.ModelViewSet):
 
 class CollectionViewSet(viewsets.ModelViewSet):
     serializer_class = CollectionSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsPremiumUser]
 
     def get_queryset(self):
         # Ne renvoie rien pour la génération Swagger ou utilisateur anonyme

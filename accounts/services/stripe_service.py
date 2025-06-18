@@ -1,6 +1,7 @@
 import stripe
 from decimal import Decimal
 from django.conf import settings
+from accounts.models import Subscription
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -55,12 +56,25 @@ def create_setup_intent(user):
     return intent.client_secret
 
 
-def create_subscription(user, price_id):
-    """Create a Stripe subscription for the user to the given price."""
+def create_subscription(user, price_id, sub_type="premium"):
+    """Create or update a Subscription record and Stripe subscription."""
     customer_id = create_stripe_customer(user)
     subscription = stripe.Subscription.create(customer=customer_id, items=[{"price": price_id}])
+
+    # Update user's legacy field
     user.stripe_subscription_id = subscription.id
     user.save()
+
+    # Create or update internal Subscription model
+    Subscription.objects.update_or_create(
+        user=user,
+        type=sub_type,
+        defaults={
+            "stripe_subscription_id": subscription.id,
+            "status": subscription.status,
+        },
+    )
+
     return subscription.id
 
 
