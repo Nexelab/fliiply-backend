@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.text import slugify
+from django.core.exceptions import ValidationError
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -38,15 +39,26 @@ class Version(models.Model):
 class Condition(models.Model):
     code = models.CharField(max_length=20, unique=True)
     label = models.CharField(max_length=100)
+    is_graded = models.BooleanField(default=False)
 
     def __str__(self):
         return self.label
 
 class Grade(models.Model):
-    value = models.DecimalField(max_digits=4, decimal_places=1)  # ex: 9.5
+    GRADER_CHOICES = [
+        ('PSA', 'PSA'),
+        ('PCA', 'PCA'),
+        ('BGS', 'BGS'),
+        ('CGC', 'CGC'),
+        ('CCC', 'CCC'),
+        ('SGC', 'SGC'),
+        ('OTHER', 'Autre'),
+    ]
+    value = models.DecimalField(max_digits=4, decimal_places=1)
+    grader = models.CharField(max_length=20, choices=GRADER_CHOICES, default='PSA')
 
     def __str__(self):
-        return str(self.value)
+        return f"{self.grader} {self.value}"
 
 class Product(models.Model):
     TCG_TYPES = (
@@ -114,8 +126,18 @@ class Variant(models.Model):
     condition = models.ForeignKey(Condition, on_delete=models.PROTECT)
     grade = models.ForeignKey(Grade, on_delete=models.PROTECT, null=True, blank=True)
 
+    def clean(self):
+        # Empêche une incohérence entre condition non-graded et grade renseigné
+        if self.grade and self.condition and not self.condition.is_graded:
+            raise ValidationError("You cannot assign a grade with a non-graded condition.")
+        if not self.grade and self.condition and self.condition.is_graded:
+            raise ValidationError("A graded condition must have a grade value.")
+
     def __str__(self):
-        return f"{self.product.name} - {self.language} - {self.version} - {self.condition}{' - Graded ' + str(self.grade) if self.grade else ''}"
+        base = f"{self.product.name} - {self.language} - {self.version} - {self.condition}"
+        if self.grade:
+            base += f" - {self.grade}"
+        return base
 
     class Meta:
         constraints = [

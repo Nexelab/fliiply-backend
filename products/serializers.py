@@ -31,12 +31,12 @@ class VersionSerializer(serializers.ModelSerializer):
 class ConditionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Condition
-        fields = ['id', 'code', 'label']
+        fields = ['id', 'code', 'label', 'is_graded']
 
 class GradeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Grade
-        fields = ['id', 'value']
+        fields = ['id', 'value', 'grader']
 
 # --- Product and Related ---
 
@@ -52,9 +52,27 @@ class VariantSerializer(serializers.ModelSerializer):
     condition = ConditionSerializer(read_only=True)
     grade = GradeSerializer(read_only=True)
 
+    language_id = serializers.PrimaryKeyRelatedField(
+        queryset=Language.objects.all(), write_only=True, source='language'
+    )
+    version_id = serializers.PrimaryKeyRelatedField(
+        queryset=Version.objects.all(), write_only=True, source='version'
+    )
+    condition_id = serializers.PrimaryKeyRelatedField(
+        queryset=Condition.objects.all(), write_only=True, source='condition'
+    )
+    grade_id = serializers.PrimaryKeyRelatedField(
+        queryset=Grade.objects.all(), write_only=True, allow_null=True, required=False, source='grade'
+    )
+
     class Meta:
         model = Variant
-        fields = ['id', 'product', 'language', 'version', 'condition', 'grade']
+        fields = [
+            'id', 'product',
+            'language', 'version', 'condition', 'grade',
+            'language_id', 'version_id', 'condition_id', 'grade_id'
+        ]
+
 
 class ProductSerializer(serializers.ModelSerializer):
     categories = CategorySerializer(many=True, read_only=True)
@@ -109,8 +127,15 @@ class ProductSerializer(serializers.ModelSerializer):
 
 class ListingSerializer(serializers.ModelSerializer):
     variant = VariantSerializer(read_only=True)
+    variant_id = serializers.PrimaryKeyRelatedField(
+        queryset=Variant.objects.all(), write_only=True, source='variant'
+    )
 
     class Meta:
         model = Listing
-        fields = ['id', 'product', 'variant', 'seller', 'price', 'stock', 'status', 'created_at', 'updated_at']
+        fields = [
+            'id', 'product', 'variant', 'variant_id',
+            'seller', 'price', 'stock', 'status',
+            'created_at', 'updated_at'
+        ]
         read_only_fields = ['created_at', 'updated_at']

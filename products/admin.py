@@ -1,7 +1,7 @@
 # products/admin.py
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Category, Product, ProductImage, PriceHistory
+from .models import Category, Product, ProductImage, Language, Version, Condition, Grade, Variant, Listing
 
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
@@ -25,18 +25,18 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'series', 'collection', 'tcg_type', 'language', 'created_at')
-    list_filter = ('tcg_type', 'language', 'categories')
-    search_fields = ('name', 'series', 'collection', 'description')
+    list_display = ('name', 'block', 'series', 'tcg_type', 'created_at')
+    list_filter = ('tcg_type', 'categories')
+    search_fields = ('name', 'block', 'series', 'description')
     filter_horizontal = ('categories',)
     readonly_fields = ('created_at', 'updated_at')
     inlines = [ProductImageInline]
     fieldsets = (
         ('Informations principales', {
-            'fields': ('name', 'series', 'collection', 'description')
+            'fields': ('name', 'block', 'series', 'description')
         }),
         ('Détails TCG', {
-            'fields': ('tcg_type', 'language')
+            'fields': ('tcg_type',)
         }),
         ('Catégories', {
             'fields': ('categories',)
@@ -81,9 +81,38 @@ class ProductImageAdmin(admin.ModelAdmin):
         return "Aucune image"
     image_preview.short_description = "Prévisualisation"
 
-@admin.register(PriceHistory)
-class PriceHistoryAdmin(admin.ModelAdmin):
-    list_display = ('product', 'price', 'recorded_at')
-    list_filter = ('product',)
+@admin.register(Language)
+class LanguageAdmin(admin.ModelAdmin):
+    list_display = ('code', 'name')
+    search_fields = ('code', 'name')
+
+@admin.register(Version)
+class VersionAdmin(admin.ModelAdmin):
+    list_display = ('code', 'name', 'displayable')
+    search_fields = ('code', 'name')
+    list_filter = ('displayable',)
+
+@admin.register(Condition)
+class ConditionAdmin(admin.ModelAdmin):
+    list_display = ('code', 'label')
+    search_fields = ('code', 'label')
+
+@admin.register(Grade)
+class GradeAdmin(admin.ModelAdmin):
+    list_display = ('grader', 'value')
+    list_filter = ('grader',)
+    ordering = ['grader', '-value']
+
+@admin.register(Variant)
+class VariantAdmin(admin.ModelAdmin):
+    list_display = ('product', 'language', 'version', 'condition', 'grade')
+    list_filter = ('language', 'version', 'condition')
     search_fields = ('product__name',)
-    readonly_fields = ('recorded_at',)
+
+@admin.register(Listing)
+class ListingAdmin(admin.ModelAdmin):
+    list_display = ('product', 'variant', 'seller', 'price', 'stock', 'status', 'created_at')
+    list_filter = ('status', 'created_at')
+    search_fields = ('product__name', 'seller__username', 'variant__language__name')
+    autocomplete_fields = ['product', 'variant', 'seller']
+    ordering = ('-created_at',)

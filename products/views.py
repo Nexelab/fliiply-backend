@@ -3,7 +3,6 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
 from .models import (
     Product, Category, ProductImage, Language, Version, Condition,
     Grade, Variant, Listing
