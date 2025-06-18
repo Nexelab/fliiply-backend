@@ -62,3 +62,19 @@ When using Docker you can run the suite inside the container:
 ```bash
 docker compose run web pytest
 ```
+
+## Search endpoint
+
+The `/api/search/` URL returns active listings matching a query. Example:
+
+```http
+GET /api/search/?q=pikachu&language=EN&min_price=5&max_price=20
+```
+
+Available filters include:
+
+- `tcg_type`, `block`, `series`
+- `language`, `version`, `condition`, `grade`
+- `min_price`, `max_price`, and `availability` (`in_stock` or `out_of_stock`)
+
+Results are paginated using DRF's standard paginator.
