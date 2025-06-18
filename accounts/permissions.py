@@ -25,3 +25,9 @@ class IsEmailVerified(BasePermission):
 class IsAdminUser(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.is_superuser
+
+class IsPremiumUser(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if not request.user.is_authenticated:
+            return False
+        return request.user.subscriptions.filter(status='active').exists()

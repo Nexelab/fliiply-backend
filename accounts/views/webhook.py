@@ -7,7 +7,7 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from accounts.models import User
+from accounts.models import User, Subscription
 from rest_framework import status
 
 logger = logging.getLogger(__name__)
@@ -64,5 +64,16 @@ def stripe_webhook(request):
 
         user.save()
         logger.info(f"[WEBHOOK] ✅ User {user.username} updated with status '{user.stripe_account_status}'")
+
+    elif event['type'].startswith('customer.subscription.'):
+        sub_data = event['data']['object']
+        sub_id = sub_data['id']
+        try:
+            subscription = Subscription.objects.get(stripe_subscription_id=sub_id)
+            subscription.status = sub_data.get('status', subscription.status)
+            subscription.save()
+            logger.info(f"[WEBHOOK] Subscription {sub_id} status updated to {subscription.status}")
+        except Subscription.DoesNotExist:
+            logger.warning(f"[WEBHOOK] No subscription found for id {sub_id}")
 
     return HttpResponse(status=200)
