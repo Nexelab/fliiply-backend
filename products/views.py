@@ -1,9 +1,11 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, generics
+from rest_framework.pagination import PageNumberPagination
 from accounts.permissions import IsPremiumUser
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
+from django.db.models import Q
 from .models import (
     Product,
     Category,
@@ -15,6 +17,7 @@ from .models import (
     Variant,
     Listing,
     Collection,
+    SearchHistory,
 )
 from .serializers import (
     ProductSerializer,
@@ -27,6 +30,7 @@ from .serializers import (
     VariantSerializer,
     ListingSerializer,
     CollectionSerializer,
+    SearchHistorySerializer,
 )
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -157,3 +161,77 @@ class CollectionViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class SearchView(generics.ListAPIView):
+    serializer_class = ListingSerializer
+    pagination_class = PageNumberPagination
+
+    def get_queryset(self):
+        qs = Listing.objects.filter(status='active').select_related(
+            'product',
+            'variant__language',
+            'variant__version',
+            'variant__condition',
+            'variant__grade',
+        )
+
+        query = self.request.query_params.get('q')
+        if query:
+            qs = qs.filter(
+                Q(product__name__icontains=query)
+                | Q(product__series__icontains=query)
+                | Q(product__block__icontains=query)
+                | Q(variant__language__name__icontains=query)
+                | Q(variant__version__name__icontains=query)
+                | Q(variant__condition__label__icontains=query)
+                | Q(variant__grade__grader__icontains=query)
+                | Q(variant__grade__value__icontains=query)
+            )
+
+        filters = self.request.query_params
+        if 'tcg_type' in filters:
+            qs = qs.filter(product__tcg_type=filters['tcg_type'])
+        if 'block' in filters:
+            qs = qs.filter(product__block__iexact=filters['block'])
+        if 'series' in filters:
+            qs = qs.filter(product__series__iexact=filters['series'])
+        if 'language' in filters:
+            qs = qs.filter(variant__language__code=filters['language'])
+        if 'version' in filters:
+            qs = qs.filter(variant__version__code=filters['version'])
+        if 'condition' in filters:
+            qs = qs.filter(variant__condition__code=filters['condition'])
+        if 'grade' in filters:
+            qs = qs.filter(variant__grade__grader=filters['grade'])
+        if 'min_price' in filters:
+            qs = qs.filter(price__gte=filters['min_price'])
+        if 'max_price' in filters:
+            qs = qs.filter(price__lte=filters['max_price'])
+        if filters.get('availability') == 'in_stock':
+            qs = qs.filter(stock__gt=0)
+        if filters.get('availability') == 'out_of_stock':
+            qs = qs.filter(stock=0)
+
+        return qs
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+
+        if request.user.is_authenticated:
+            params = request.query_params.dict()
+            query = params.pop('q', '')
+            params.pop('page', None)
+
+            SearchHistory.objects.create(
+                user=request.user,
+                query=query,
+                filters=params or None,
+            )
+
+            histories = SearchHistory.objects.filter(user=request.user).order_by('-searched_at')
+            if histories.count() > 50:
+                for history in histories[50:]:
+                    history.delete()
+
+        return response
