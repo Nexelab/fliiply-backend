@@ -139,5 +139,5 @@ class CollectionAdmin(admin.ModelAdmin):
 
 @admin.register(CollectionItem)
 class CollectionItemAdmin(admin.ModelAdmin):
-    list_display = ('collection', 'product', 'quantity')
-    autocomplete_fields = ['collection', 'product']
+    list_display = ('collection', 'variant', 'quantity')
+    autocomplete_fields = ['collection', 'variant']

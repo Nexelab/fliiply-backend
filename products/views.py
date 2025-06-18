@@ -148,7 +148,7 @@ class CollectionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Collection.objects.filter(user=self.request.user).prefetch_related('products')
+        return Collection.objects.filter(user=self.request.user).prefetch_related('variants')
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)

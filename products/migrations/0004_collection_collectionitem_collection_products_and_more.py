@@ -54,24 +54,24 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "product",
+                    "variant",
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
-                        to="products.product",
+                        to="products.variant",
                     ),
                 ),
             ],
             options={
-                "unique_together": {("collection", "product")},
+                "unique_together": {("collection", "variant")},
             },
         ),
         migrations.AddField(
             model_name="collection",
-            name="products",
+            name="variants",
             field=models.ManyToManyField(
                 related_name="collections",
                 through="products.CollectionItem",
-                to="products.product",
+                to="products.variant",
             ),
         ),
         migrations.AddField(

@@ -151,40 +151,40 @@ class ListingSerializer(serializers.ModelSerializer):
 
 
 class CollectionItemSerializer(serializers.ModelSerializer):
-    product = ProductSerializer(read_only=True)
-    product_id = serializers.PrimaryKeyRelatedField(
-        queryset=Product.objects.all(), write_only=True, source='product'
+    variant = VariantSerializer(read_only=True)
+    variant_id = serializers.PrimaryKeyRelatedField(
+        queryset=Variant.objects.all(), write_only=True, source='variant'
     )
 
     class Meta:
         model = CollectionItem
-        fields = ['id', 'product', 'product_id', 'quantity']
+        fields = ['id', 'variant', 'variant_id', 'quantity']
 
 
 class CollectionSerializer(serializers.ModelSerializer):
-    products = ProductSerializer(many=True, read_only=True)
-    products_ids = serializers.PrimaryKeyRelatedField(
-        queryset=Product.objects.all(), many=True, write_only=True, source='products'
+    variants = VariantSerializer(many=True, read_only=True)
+    variants_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Variant.objects.all(), many=True, write_only=True, source='variants'
     )
 
     class Meta:
         model = Collection
         fields = [
             'id', 'name', 'slug', 'description',
-            'products', 'products_ids',
+            'variants', 'variants_ids',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'slug', 'created_at', 'updated_at']
 
     def create(self, validated_data):
-        products = validated_data.pop('products', [])
+        variants = validated_data.pop('variants', [])
         collection = Collection.objects.create(**validated_data)
-        collection.products.set(products)
+        collection.variants.set(variants)
         return collection
 
     def update(self, instance, validated_data):
-        products = validated_data.pop('products', None)
+        variants = validated_data.pop('variants', None)
         instance = super().update(instance, validated_data)
-        if products is not None:
-            instance.products.set(products)
+        if variants is not None:
+            instance.variants.set(variants)
         return instance

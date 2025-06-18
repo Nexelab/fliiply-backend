@@ -175,7 +175,7 @@ class Collection(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(max_length=150, unique=True, blank=True)
     description = models.TextField(blank=True, null=True)
-    products = models.ManyToManyField(Product, through='CollectionItem', related_name='collections')
+    variants = models.ManyToManyField(Variant, through='CollectionItem', related_name='collections')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -190,11 +190,11 @@ class Collection(models.Model):
 
 class CollectionItem(models.Model):
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE, related_name='items')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    variant = models.ForeignKey(Variant, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
 
     class Meta:
-        unique_together = ('collection', 'product')
+        unique_together = ('collection', 'variant')
 
     def __str__(self):
-        return f"{self.product.name} in {self.collection.name} x{self.quantity}"
+        return f"{self.variant} in {self.collection.name} x{self.quantity}"
