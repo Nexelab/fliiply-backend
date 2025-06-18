@@ -327,3 +327,25 @@ Authorization: Bearer {{token}}
 
 DELETE http://localhost:8000/cart/1
 Authorization: Bearer {{token}}
+
+### 🚨 Open Dispute
+POST http://localhost:8000/disputes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "order_id": 1
+}
+
+### 💬 Add Dispute Message
+POST http://localhost:8000/disputes/1/add_message
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "content": "I have an issue"
+}
+
+### ✅ Resolve Dispute
+POST http://localhost:8000/disputes/1/resolve
+Authorization: Bearer {{token}}
