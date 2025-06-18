@@ -1,7 +1,19 @@
 # products/admin.py
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Category, Product, ProductImage, Language, Version, Condition, Grade, Variant, Listing
+from .models import (
+    Category,
+    Product,
+    ProductImage,
+    Language,
+    Version,
+    Condition,
+    Grade,
+    Variant,
+    Listing,
+    Collection,
+    CollectionItem,
+)
 
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
@@ -116,3 +128,16 @@ class ListingAdmin(admin.ModelAdmin):
     search_fields = ('product__name', 'seller__username', 'variant__language__name')
     autocomplete_fields = ['product', 'variant', 'seller']
     ordering = ('-created_at',)
+
+
+@admin.register(Collection)
+class CollectionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'user', 'created_at')
+    search_fields = ('name', 'user__username')
+    prepopulated_fields = {'slug': ('name',)}
+
+
+@admin.register(CollectionItem)
+class CollectionItemAdmin(admin.ModelAdmin):
+    list_display = ('collection', 'product', 'quantity')
+    autocomplete_fields = ['collection', 'product']

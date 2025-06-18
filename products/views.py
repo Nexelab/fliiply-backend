@@ -4,13 +4,28 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from .models import (
-    Product, Category, ProductImage, Language, Version, Condition,
-    Grade, Variant, Listing
+    Product,
+    Category,
+    ProductImage,
+    Language,
+    Version,
+    Condition,
+    Grade,
+    Variant,
+    Listing,
+    Collection,
 )
 from .serializers import (
-    ProductSerializer, CategorySerializer, ProductImageSerializer,
-    LanguageSerializer, VersionSerializer, ConditionSerializer,
-    GradeSerializer, VariantSerializer, ListingSerializer
+    ProductSerializer,
+    CategorySerializer,
+    ProductImageSerializer,
+    LanguageSerializer,
+    VersionSerializer,
+    ConditionSerializer,
+    GradeSerializer,
+    VariantSerializer,
+    ListingSerializer,
+    CollectionSerializer,
 )
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -126,3 +141,14 @@ class ListingViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(operation_description="List all listings.")
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+
+class CollectionViewSet(viewsets.ModelViewSet):
+    serializer_class = CollectionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Collection.objects.filter(user=self.request.user).prefetch_related('products')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
