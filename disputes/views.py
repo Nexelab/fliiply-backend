@@ -14,6 +14,12 @@ class DisputeViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        # Return an empty queryset when generating Swagger docs or when the
+        # request user isn't authenticated to avoid errors during schema
+        # generation.
+        if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
+            return Dispute.objects.none()
+
         user = self.request.user
         return Dispute.objects.filter(
             Q(initiator=user) | Q(order__buyer=user) | Q(moderator=user)
