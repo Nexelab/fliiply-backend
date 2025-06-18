@@ -2,7 +2,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from accounts.views import UserViewSet, RegisterView, ChangeRoleView, CustomTokenObtainPairView, AddressViewSet, \
-    PasswordResetRequestView, PasswordResetConfirmView, VerifyEmailView, ResendVerificationEmailView, VerifyKYCView
+    PasswordResetRequestView, PasswordResetConfirmView, VerifyEmailView, ResendVerificationEmailView, VerifyKYCView, \
+    StripeSetupIntentView, StripeSubscriptionView
 from .views.onboarding import StripeOnboardingView
 from .views.webhook import stripe_webhook
 from django.views.generic import TemplateView
@@ -36,4 +37,6 @@ stripe_patterns = [
     path('onboarding/complete/', TemplateView.as_view(template_name='stripe/complete.html')),
     path('onboarding/refresh/', TemplateView.as_view(template_name='stripe/refresh.html')),
     path('webhook/', stripe_webhook, name='stripe-webhook'),
+    path('setup-intent/', StripeSetupIntentView.as_view(), name='stripe-setup-intent'),
+    path('subscription/', StripeSubscriptionView.as_view(), name='stripe-subscription'),
 ]

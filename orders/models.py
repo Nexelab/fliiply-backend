@@ -38,6 +38,21 @@ class Offer(models.Model):
         return f"{self.offer_type} offer by {self.user.username} for {self.product.name} at {self.price}€"
 
 
+class CartItem(models.Model):
+    buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name="cart_items")
+    offer = models.ForeignKey(Offer, on_delete=models.CASCADE, related_name="cart_items")
+    quantity = models.PositiveIntegerField(default=1)
+    reserved_until = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("buyer", "offer")
+
+    def __str__(self):
+        return f"{self.quantity} of {self.offer} reserved by {self.buyer}"
+
+
 class Order(models.Model):
     buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
     seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sold_orders')  # Ajouté
@@ -63,6 +78,9 @@ class Order(models.Model):
     seller_processing_fee = models.DecimalField(max_digits=10, decimal_places=2)
     seller_shipping_fee = models.DecimalField(max_digits=10, decimal_places=2)
     seller_net_amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    platform_commission = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    stripe_payment_intent_id = models.CharField(max_length=255, blank=True, null=True)
 
     status = models.CharField(max_length=20, choices=[
         ('pending', 'Pending'),

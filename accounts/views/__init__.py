@@ -14,4 +14,5 @@ from .main import (
 )
 
 from .onboarding import StripeOnboardingView
+from .main import StripeSetupIntentView, StripeSubscriptionView
 from .webhook import stripe_webhook

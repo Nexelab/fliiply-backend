@@ -65,6 +65,18 @@ class User(AbstractUser):
         default=StripeStatus.INCOMPLETE,
         help_text="État actuel du compte Stripe (par ex. 'incomplete', 'completed', 'verified', etc.)"
     )
+    stripe_customer_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Identifiant du client Stripe pour les paiements"
+    )
+    stripe_subscription_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Identifiant de l'abonnement premium Stripe"
+    )
     is_kyc_verified = models.BooleanField(
         default=False,
         help_text="Indique si l'utilisateur a complété le KYC avec succès."
