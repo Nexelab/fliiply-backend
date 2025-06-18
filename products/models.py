@@ -168,3 +168,33 @@ class Listing(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+
+class Collection(models.Model):
+    user = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='collections')
+    name = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=150, unique=True, blank=True)
+    description = models.TextField(blank=True, null=True)
+    products = models.ManyToManyField(Product, through='CollectionItem', related_name='collections')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.name} ({self.user.username})"
+
+
+class CollectionItem(models.Model):
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        unique_together = ('collection', 'product')
+
+    def __str__(self):
+        return f"{self.product.name} in {self.collection.name} x{self.quantity}"
