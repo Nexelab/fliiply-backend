@@ -18,6 +18,21 @@ class CartItem(models.Model):
         return f"{self.quantity} of {self.listing} reserved by {self.buyer}"
 
 
+class CartItem(models.Model):
+    buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name="cart_items")
+    offer = models.ForeignKey(Offer, on_delete=models.CASCADE, related_name="cart_items")
+    quantity = models.PositiveIntegerField(default=1)
+    reserved_until = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("buyer", "offer")
+
+    def __str__(self):
+        return f"{self.quantity} of {self.offer} reserved by {self.buyer}"
+
+
 class Order(models.Model):
     buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
     seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sold_orders')  # Ajouté
