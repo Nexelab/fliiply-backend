@@ -3,6 +3,7 @@ from accounts.permissions import IsPremiumUser
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from drf_yasg.utils import swagger_auto_schema
 from .models import (
     Product,
@@ -157,3 +158,48 @@ class CollectionViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class SearchSuggestionView(APIView):
+    """Return search suggestions for product fields and optional history."""
+
+    def get(self, request, *args, **kwargs):
+        query = request.query_params.get("query", "").strip()
+        suggestions: set[str] = set()
+
+        if query:
+            suggestions.update(
+                Product.objects.filter(name__icontains=query)
+                .values_list("name", flat=True)
+                .distinct()
+            )
+            suggestions.update(
+                Product.objects.filter(series__icontains=query)
+                .exclude(series__isnull=True)
+                .values_list("series", flat=True)
+                .distinct()
+            )
+            suggestions.update(
+                Product.objects.filter(block__icontains=query)
+                .exclude(block__isnull=True)
+                .values_list("block", flat=True)
+                .distinct()
+            )
+
+            # Include terms from SearchHistory model if it exists
+            from django.apps import apps
+
+            try:
+                SearchHistory = apps.get_model("products", "SearchHistory")
+            except LookupError:
+                SearchHistory = None
+
+            if SearchHistory is not None:
+                history_terms = (
+                    SearchHistory.objects.filter(term__icontains=query)
+                    .values_list("term", flat=True)
+                    .distinct()[:5]
+                )
+                suggestions.update(history_terms)
+
+        return Response(sorted(suggestions))

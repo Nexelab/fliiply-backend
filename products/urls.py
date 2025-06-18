@@ -10,6 +10,7 @@ from .views import (
     VariantViewSet,
     ListingViewSet,
     CollectionViewSet,
+    SearchSuggestionView,
 )
 
 router = DefaultRouter()
@@ -25,4 +26,5 @@ router.register(r'collections', CollectionViewSet, basename='collection')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('search/suggestions/', SearchSuggestionView.as_view(), name='search-suggestions'),
 ]
