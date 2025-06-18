@@ -6,5 +6,6 @@ urlpatterns = [
     path('users/', include(user_patterns)),
     path('', include('products.urls')),
     path('', include('orders.urls')),
+    path('', include('disputes.urls')),
     path('stripe/', include(stripe_patterns)),
 ]
