@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from decimal import Decimal
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework import serializers
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -12,7 +12,6 @@ from accounts.permissions import IsBuyer, IsSeller
 from accounts.models import Address
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from django.db.models import Q
 from datetime import timedelta
 
 User = get_user_model()
@@ -44,34 +43,6 @@ class CartItemViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError('Listing is reserved')
         reserved_until = now + timedelta(minutes=getattr(settings, 'CART_RESERVATION_MINUTES', 30))
         serializer.save(buyer=self.request.user, listing=listing, quantity=quantity, reserved_until=reserved_until)
-
-
-
-class CartItemViewSet(viewsets.ModelViewSet):
-    serializer_class = CartItemSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return CartItem.objects.none()
-        user = self.request.user
-        now = timezone.now()
-        # Clean expired reservations
-        CartItem.objects.filter(reserved_until__lt=now).delete()
-        return CartItem.objects.filter(buyer=user)
-
-    def perform_create(self, serializer):
-        offer_id = self.request.data.get('offer')
-        quantity = int(self.request.data.get('quantity', 1))
-        try:
-            offer = Offer.objects.get(id=offer_id, status='pending')
-        except Offer.DoesNotExist:
-            raise serializers.ValidationError('Invalid offer')
-        now = timezone.now()
-        if CartItem.objects.filter(offer=offer, reserved_until__gt=now).exclude(buyer=self.request.user).exists():
-            raise serializers.ValidationError('Offer is reserved')
-        reserved_until = now + timedelta(minutes=getattr(settings, 'CART_RESERVATION_MINUTES', 30))
-        serializer.save(buyer=self.request.user, offer=offer, quantity=quantity, reserved_until=reserved_until)
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -406,9 +377,6 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         # Remove reservation from cart if exists
         CartItem.objects.filter(buyer=buyer, listing=listing).delete()
-
-        # Remove reservation from cart if exists
-        CartItem.objects.filter(buyer=buyer, offer=offer).delete()
 
         # Créer la commande
         serializer.save(
