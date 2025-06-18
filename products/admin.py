@@ -13,6 +13,7 @@ from .models import (
     Listing,
     Collection,
     CollectionItem,
+    SearchHistory,
 )
 
 class ProductImageInline(admin.TabularInline):
@@ -141,3 +142,10 @@ class CollectionAdmin(admin.ModelAdmin):
 class CollectionItemAdmin(admin.ModelAdmin):
     list_display = ('collection', 'variant', 'quantity')
     autocomplete_fields = ['collection', 'variant']
+
+
+@admin.register(SearchHistory)
+class SearchHistoryAdmin(admin.ModelAdmin):
+    list_display = ('user', 'query', 'searched_at')
+    search_fields = ('query', 'user__username')
+    list_filter = ('searched_at',)

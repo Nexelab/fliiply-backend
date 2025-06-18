@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError
+from django.conf import settings
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -198,3 +199,13 @@ class CollectionItem(models.Model):
 
     def __str__(self):
         return f"{self.variant} in {self.collection.name} x{self.quantity}"
+
+
+class SearchHistory(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    query = models.CharField(max_length=255)
+    filters = models.JSONField(blank=True, null=True)
+    searched_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user} searched '{self.query}' at {self.searched_at}"
