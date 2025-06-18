@@ -69,3 +69,12 @@ def create_payment_intent(user, amount, currency="eur"):
     customer_id = create_stripe_customer(user)
     intent = stripe.PaymentIntent.create(customer=customer_id, amount=int(amount * 100), currency=currency)
     return intent
+
+
+def confirm_payment_intent(payment_intent_id, payment_method_id=None):
+    """Confirm a PaymentIntent using an optional payment method."""
+    params = {}
+    if payment_method_id:
+        params["payment_method"] = payment_method_id
+    intent = stripe.PaymentIntent.confirm(payment_intent_id, **params)
+    return intent

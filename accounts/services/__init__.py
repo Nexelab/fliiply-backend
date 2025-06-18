@@ -5,5 +5,6 @@ from .stripe_service import (
     create_setup_intent,
     create_subscription,
     create_payment_intent,
+    confirm_payment_intent,
 )
 

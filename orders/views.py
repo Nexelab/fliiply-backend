@@ -1,11 +1,13 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from decimal import Decimal
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import serializers
+from rest_framework.response import Response
+from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .models import Order, CartItem, OrderItem
-from accounts.services import create_payment_intent
+from accounts.services import create_payment_intent, confirm_payment_intent
 from django.conf import settings
 from .serializers import OrderSerializer, CartItemSerializer
 from accounts.permissions import IsBuyer, IsSeller
@@ -380,3 +382,26 @@ class OrderViewSet(viewsets.ModelViewSet):
         ):
             raise serializers.ValidationError("You cannot update this order.")
         serializer.save()
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated, IsBuyer])
+    @swagger_auto_schema(
+        operation_description="Confirm the Stripe payment for this order.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'payment_method_id': openapi.Schema(type=openapi.TYPE_STRING, description='Stripe payment method ID')
+            }
+        ),
+        responses={200: openapi.Schema(type=openapi.TYPE_OBJECT, properties={'status': openapi.Schema(type=openapi.TYPE_STRING)})}
+    )
+    def pay(self, request, pk=None):
+        order = self.get_object()
+        if order.buyer != request.user:
+            return Response({'error': 'You can only pay for your own order.'}, status=status.HTTP_403_FORBIDDEN)
+
+        payment_method_id = request.data.get('payment_method_id')
+        try:
+            intent = confirm_payment_intent(order.stripe_payment_intent_id, payment_method_id)
+            return Response({'status': intent.status})
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
