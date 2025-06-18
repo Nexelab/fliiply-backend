@@ -1,89 +1,50 @@
 from rest_framework import viewsets
+from decimal import Decimal
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework import serializers
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from .models import Order, Offer
-from .serializers import OrderSerializer, OfferSerializer
+from .models import Order, CartItem
+from accounts.services import create_payment_intent
+from django.conf import settings
+from .serializers import OrderSerializer, CartItemSerializer
 from accounts.permissions import IsBuyer, IsSeller
 from accounts.models import Address
 from django.contrib.auth import get_user_model
+from django.utils import timezone
+from django.db.models import Q
+from datetime import timedelta
 
 User = get_user_model()
 
-class OfferViewSet(viewsets.ModelViewSet):
-    queryset = Offer.objects.all()
-    serializer_class = OfferSerializer
 
-    def get_permissions(self):
-        if self.action in ['create']:
-            if self.request.data.get('offer_type') == Offer.OFFER_TYPE_BUY:
-                permission_classes = [IsAuthenticated, IsBuyer]
-            else:
-                permission_classes = [IsAuthenticated, IsSeller]
-        elif self.action in ['update', 'partial_update', 'destroy']:
-            permission_classes = [IsAuthenticated]
-        else:
-            permission_classes = [IsAuthenticated]
-        return [permission() for permission in permission_classes]
+class CartItemViewSet(viewsets.ModelViewSet):
+    serializer_class = CartItemSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # Vérifier si nous sommes en mode génération de schéma Swagger
         if getattr(self, 'swagger_fake_view', False):
-            return Offer.objects.none()
-
-        # Vérifier si l'utilisateur est authentifié
+            return CartItem.objects.none()
         user = self.request.user
-        if not user.is_authenticated:
-            return Offer.objects.none()
-
-        if user.is_buyer:
-            return Offer.objects.filter(offer_type=Offer.OFFER_TYPE_SELL, status='pending')
-        elif user.is_seller:
-            return Offer.objects.filter(offer_type=Offer.OFFER_TYPE_BUY, status='pending')
-        return Offer.objects.none()
-
-    @swagger_auto_schema(
-        operation_description="List all offers (buyers see sell offers, sellers see buy offers).",
-        responses={200: OfferSerializer(many=True), 401: "Unauthorized"}
-    )
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
-    @swagger_auto_schema(
-        operation_description="Create a new offer (buyers create buy offers, sellers create sell offers).",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            required=['product', 'offer_type', 'price', 'quantity'],
-            properties={
-                'product': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the product'),
-                'offer_type': openapi.Schema(type=openapi.TYPE_STRING, description='Type of offer (buy or sell)'),
-                'price': openapi.Schema(type=openapi.TYPE_NUMBER, description='Proposed price'),
-                'quantity': openapi.Schema(type=openapi.TYPE_INTEGER, description='Quantity of items', default=1),
-                'condition': openapi.Schema(type=openapi.TYPE_STRING, description='Condition of the item (for sell offers)', enum=['mint', 'near_mint', 'excellent', 'good', 'played', 'poor']),
-                'stock': openapi.Schema(type=openapi.TYPE_INTEGER, description='Available stock (for sell offers)')
-            }
-        ),
-        responses={201: OfferSerializer, 403: "Forbidden", 400: "Bad Request"}
-    )
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
-
-    @swagger_auto_schema(
-        operation_description="Retrieve an offer by ID (buyers and sellers only).",
-        responses={200: OfferSerializer, 401: "Unauthorized", 404: "Not Found"}
-    )
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
+        now = timezone.now()
+        # Clean expired reservations
+        CartItem.objects.filter(reserved_until__lt=now).delete()
+        return CartItem.objects.filter(buyer=user)
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        listing_id = self.request.data.get('listing')
+        quantity = int(self.request.data.get('quantity', 1))
+        from products.models import Listing
+        try:
+            listing = Listing.objects.get(id=listing_id, status='active')
+        except Listing.DoesNotExist:
+            raise serializers.ValidationError('Invalid listing')
+        now = timezone.now()
+        if CartItem.objects.filter(listing=listing, reserved_until__gt=now).exclude(buyer=self.request.user).exists():
+            raise serializers.ValidationError('Listing is reserved')
+        reserved_until = now + timedelta(minutes=getattr(settings, 'CART_RESERVATION_MINUTES', 30))
+        serializer.save(buyer=self.request.user, listing=listing, quantity=quantity, reserved_until=reserved_until)
 
-    def perform_update(self, serializer):
-        offer = self.get_object()
-        if offer.user != self.request.user:
-            raise serializers.ValidationError("Only the creator of the offer can update it.")
-        serializer.save()
 
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all()
@@ -140,7 +101,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                                 "is_seller": True,
                                 "is_verifier": False
                             },
-                            "offer": {
+                            "listing": {
                                 "id": 1,
                                 "user": {
                                     "id": 1,
@@ -169,7 +130,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                                     "price_histories": [],
                                     "similar_products": []
                                 },
-                                "offer_type": "sell",
+                                "status": "active",
                                 "price": "90.00",
                                 "quantity": 2,
                                 "condition": "mint",
@@ -231,9 +192,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         operation_description="Create a new order (buyers only).",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            required=['offer', 'quantity', 'buyer_address'],
+            required=['listing', 'quantity', 'buyer_address'],
             properties={
-                'offer': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the offer to accept'),
+                'listing': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the listing to purchase'),
                 'quantity': openapi.Schema(type=openapi.TYPE_INTEGER, description='Quantity of items to order', default=1),
                 'buyer_address': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the buyer’s address for shipping')
             }
@@ -261,7 +222,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                             "is_seller": True,
                             "is_verifier": False
                         },
-                        "offer": {
+                        "listing": {
                             "id": 1,
                             "user": {
                                 "id": 1,
@@ -290,7 +251,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                                 "price_histories": [],
                                 "similar_products": []
                             },
-                            "offer_type": "sell",
+                            "status": "active",
                             "price": "90.00",
                             "quantity": 2,
                             "condition": "mint",
@@ -360,34 +321,25 @@ class OrderViewSet(viewsets.ModelViewSet):
         return super().retrieve(request, *args, **kwargs)
 
     def perform_create(self, serializer):
-        offer_id = self.request.data.get('offer')
+        listing_id = self.request.data.get('listing')
         quantity = int(self.request.data.get('quantity', 1))
         buyer_address_id = self.request.data.get('buyer_address')
 
-        # Récupérer l'offre
-        offer = Offer.objects.get(id=offer_id)
+        # Récupérer la listing
+        from products.models import Listing
+        listing = Listing.objects.get(id=listing_id)
 
         # Vérifier les données
-        if offer.status != 'pending':
-            raise serializers.ValidationError("Offer is not available.")
+        if listing.status != 'active':
+            raise serializers.ValidationError("Listing is not available.")
 
         # Déterminer le vendeur et l'acheteur
-        if offer.offer_type == Offer.OFFER_TYPE_BUY:
-            # Acheteur a créé l'offre, vendeur accepte
-            if not self.request.user.is_seller:
-                raise serializers.ValidationError("Only sellers can accept buy offers.")
-            seller = self.request.user
-            buyer = offer.user
-            if offer.quantity < quantity:
-                raise serializers.ValidationError("Not enough quantity available in the offer.")
-        else:
-            # Vendeur a créé l'offre, acheteur accepte
-            if not self.request.user.is_buyer:
-                raise serializers.ValidationError("Only buyers can accept sell offers.")
-            seller = offer.user
-            buyer = self.request.user
-            if offer.stock < quantity:
-                raise serializers.ValidationError("Not enough stock available.")
+        if not self.request.user.is_buyer:
+            raise serializers.ValidationError("Only buyers can create orders.")
+        seller = listing.seller
+        buyer = self.request.user
+        if listing.stock < quantity:
+            raise serializers.ValidationError("Not enough stock available.")
 
         # Récupérer l'adresse de l'acheteur
         try:
@@ -404,24 +356,28 @@ class OrderViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError("Seller has no address.")
 
         # Calculer les frais
-        base_price = offer.price * quantity
+        base_price = listing.price * quantity
         buyer_processing_fee = max(base_price * 0.06, 5.00)
         buyer_shipping_fee = 10.00
-        buyer_total_price = base_price + buyer_processing_fee + buyer_shipping_fee
+        platform_commission = base_price * Decimal(str(getattr(settings, 'PLATFORM_COMMISSION_PERCENT', 0.05)))
+        buyer_total_price = base_price + buyer_processing_fee + buyer_shipping_fee + platform_commission
 
         seller_transaction_fee = max(base_price * 0.09, 5.00)
         seller_processing_fee = base_price * 0.03
         seller_shipping_fee = buyer_shipping_fee
-        seller_net_amount = base_price - seller_transaction_fee - seller_processing_fee - seller_shipping_fee
+        seller_net_amount = base_price - seller_transaction_fee - seller_processing_fee - seller_shipping_fee - platform_commission
+
+        payment_intent = create_payment_intent(buyer, buyer_total_price)
 
         # Mettre à jour le stock si c'est une offre de vente
-        if offer.offer_type == Offer.OFFER_TYPE_SELL:
-            offer.stock -= quantity
-            offer.save()
+        listing.stock -= quantity
+        listing.save()
 
         # Mettre à jour le statut de l'offre
-        offer.status = 'accepted'
-        offer.save()
+
+
+        # Remove reservation from cart if exists
+        CartItem.objects.filter(buyer=buyer, listing=listing).delete()
 
         # Créer la commande
         serializer.save(
@@ -436,7 +392,10 @@ class OrderViewSet(viewsets.ModelViewSet):
             seller_transaction_fee=seller_transaction_fee,
             seller_processing_fee=seller_processing_fee,
             seller_shipping_fee=seller_shipping_fee,
-            seller_net_amount=seller_net_amount
+            seller_net_amount=seller_net_amount,
+            platform_commission=platform_commission,
+            stripe_payment_intent_id=payment_intent.id,
+            listing=listing,
         )
 
     def perform_update(self, serializer):
