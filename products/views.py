@@ -146,7 +146,7 @@ class ListingViewSet(viewsets.ModelViewSet):
 
 class CollectionViewSet(viewsets.ModelViewSet):
     serializer_class = CollectionSerializer
-    permission_classes = [IsAuthenticated, IsPremiumUser]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         # Ne renvoie rien pour la génération Swagger ou utilisateur anonyme
