@@ -1,7 +1,16 @@
 from rest_framework import serializers
 from .models import (
-    Category, Language, Version, Condition, Grade,
-    Product, ProductImage, Variant, Listing
+    Category,
+    Language,
+    Version,
+    Condition,
+    Grade,
+    Product,
+    ProductImage,
+    Variant,
+    Listing,
+    Collection,
+    CollectionItem,
 )
 
 # --- Base Serializers ---
@@ -139,3 +148,43 @@ class ListingSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
         read_only_fields = ['created_at', 'updated_at']
+
+
+class CollectionItemSerializer(serializers.ModelSerializer):
+    variant = VariantSerializer(read_only=True)
+    variant_id = serializers.PrimaryKeyRelatedField(
+        queryset=Variant.objects.all(), write_only=True, source='variant'
+    )
+
+    class Meta:
+        model = CollectionItem
+        fields = ['id', 'variant', 'variant_id', 'quantity']
+
+
+class CollectionSerializer(serializers.ModelSerializer):
+    variants = VariantSerializer(many=True, read_only=True)
+    variants_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Variant.objects.all(), many=True, write_only=True, source='variants'
+    )
+
+    class Meta:
+        model = Collection
+        fields = [
+            'id', 'name', 'slug', 'description',
+            'variants', 'variants_ids',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'slug', 'created_at', 'updated_at']
+
+    def create(self, validated_data):
+        variants = validated_data.pop('variants', [])
+        collection = Collection.objects.create(**validated_data)
+        collection.variants.set(variants)
+        return collection
+
+    def update(self, instance, validated_data):
+        variants = validated_data.pop('variants', None)
+        instance = super().update(instance, validated_data)
+        if variants is not None:
+            instance.variants.set(variants)
+        return instance
