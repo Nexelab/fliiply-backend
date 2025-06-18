@@ -148,6 +148,10 @@ class CollectionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        # Ne renvoie rien pour la génération Swagger ou utilisateur anonyme
+        if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
+            return Collection.objects.none()
+
         return Collection.objects.filter(user=self.request.user).prefetch_related('variants')
 
     def perform_create(self, serializer):
