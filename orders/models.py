@@ -1,5 +1,5 @@
 from django.db import models
-from accounts.models import User, Address
+from accounts.models import User
 from products.models import Listing
 
 
@@ -16,21 +16,6 @@ class CartItem(models.Model):
 
     def __str__(self):
         return f"{self.quantity} of {self.listing} reserved by {self.buyer}"
-
-
-class CartItem(models.Model):
-    buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name="cart_items")
-    offer = models.ForeignKey(Offer, on_delete=models.CASCADE, related_name="cart_items")
-    quantity = models.PositiveIntegerField(default=1)
-    reserved_until = models.DateTimeField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        unique_together = ("buyer", "offer")
-
-    def __str__(self):
-        return f"{self.quantity} of {self.offer} reserved by {self.buyer}"
 
 
 class Order(models.Model):
