@@ -29,6 +29,10 @@ class User(AbstractUser):
     is_email_verified = models.BooleanField(default=False)
     email_verification_token = models.CharField(max_length=100, blank=True, null=True)
     email_verification_expiry = models.DateTimeField(blank=True, null=True)
+    email_otp = models.CharField(max_length=6, blank=True, null=True)
+    email_otp_expiry = models.DateTimeField(blank=True, null=True)
+    password_reset_otp = models.CharField(max_length=6, blank=True, null=True)
+    password_reset_otp_expiry = models.DateTimeField(blank=True, null=True)
     subscribed_to_newsletter = models.BooleanField(
         default=False,
         help_text="Indique si l'utilisateur est abonné à la newsletter."
@@ -91,6 +95,18 @@ class User(AbstractUser):
         if not self.email_verification_expiry:
             return False
         return timezone.now() <= self.email_verification_expiry
+
+    def is_email_otp_valid(self, otp: str) -> bool:
+        """Check if the provided email OTP matches and is not expired."""
+        if not self.email_otp or not self.email_otp_expiry:
+            return False
+        return otp == self.email_otp and timezone.now() <= self.email_otp_expiry
+
+    def is_password_reset_otp_valid(self, otp: str) -> bool:
+        """Check if the provided password reset OTP matches and is not expired."""
+        if not self.password_reset_otp or not self.password_reset_otp_expiry:
+            return False
+        return otp == self.password_reset_otp and timezone.now() <= self.password_reset_otp_expiry
 
 class Address(models.Model):
     ADDRESS_TYPE_CHOICES = (

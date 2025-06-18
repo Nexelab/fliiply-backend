@@ -1,5 +1,6 @@
 import uuid
 from datetime import timedelta
+from random import randint
 
 from django.core.mail import send_mail
 from django.utils import timezone
@@ -12,11 +13,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from django.contrib.auth.forms import PasswordResetForm, SetPasswordForm
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from django.utils.encoding import force_str, force_bytes
-from django.contrib.sites.shortcuts import get_current_site
+
 from accounts.models import User, Address
 from accounts.serializers import UserSerializer, AddressSerializer, UserRegisterSerializer
 from accounts.permissions import IsOwner, IsEmailVerified
@@ -146,28 +143,18 @@ class RegisterView(APIView):
         serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            # Générer le token de vérification et l'expiration
-            user.email_verification_token = str(uuid.uuid4())
-            user.email_verification_expiry = timezone.now() + timedelta(hours=24)
+            otp = f"{randint(100000, 999999)}"
+            user.email_otp = otp
+            user.email_otp_expiry = timezone.now() + timedelta(minutes=10)
             user.save()
-            # Générer les tokens JWT
             refresh = RefreshToken.for_user(user)
-            # Générer l'URL de vérification
-            current_site = get_current_site(request)
-            verification_url = (
-                f"http://localhost:3000/email/confirm"
-                f"?uidb64={urlsafe_base64_encode(force_bytes(user.pk))}"
-                f"&token={user.email_verification_token}"
-            )
 
-            # Envoyer l'email de vérification
             send_mail(
-                subject="Vérifiez votre adresse email",
+                subject="Code de vérification de votre email",
                 message=(
                     f"Bonjour {user.username},\n\n"
-                    f"Veuillez cliquer sur le lien suivant pour vérifier votre adresse email :\n"
-                    f"{verification_url}\n\n"
-                    "Ce lien est valide pendant 24 heures. Si vous n'avez pas créé de compte, ignorez cet email."
+                    f"Votre code de vérification est : {otp}.\n"
+                    "Il expire dans 10 minutes."
                 ),
                 from_email="Fliiply <no-reply@fliiply.com>",
                 recipient_list=[user.email],
@@ -279,15 +266,11 @@ class PasswordResetRequestView(APIView):
         responses={
             200: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
-                properties={
-                    'message': openapi.Schema(type=openapi.TYPE_STRING, description='Success message'),
-                    'uidb64': openapi.Schema(type=openapi.TYPE_STRING, description='Encoded user ID'),
-                    'token': openapi.Schema(type=openapi.TYPE_STRING, description='Password reset token'),
-                }
+                properties={'message': openapi.Schema(type=openapi.TYPE_STRING)}
             ),
             400: "Bad Request"
         },
-        operation_description="Request a password reset email for the specified user email. Returns uidb64 and token."
+        operation_description="Request a password reset code for the specified user email."
     )
     def post(self, request):
         email = request.data.get('email')
@@ -299,27 +282,24 @@ class PasswordResetRequestView(APIView):
         except User.DoesNotExist:
             return Response({'error': 'User with this email does not exist'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Générer manuellement uidb64 et token
-        uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-        token = default_token_generator.make_token(user)
+        otp = f"{randint(100000, 999999)}"
+        user.password_reset_otp = otp
+        user.password_reset_otp_expiry = timezone.now() + timedelta(minutes=10)
+        user.save()
 
-        # Envoyer l'e-mail avec uidb64 et token
-        form = PasswordResetForm(data={'email': email})
-        if form.is_valid():
-            form.save(
-                domain_override=get_current_site(request).domain,
-                subject_template_name='registration/password_reset_email_subject.txt',
-                email_template_name='registration/password_reset_email.txt',
-                from_email='Fliiply <no-reply@fliiply.com>',
-                request=request,
-                extra_email_context={'uidb64': uidb64, 'token': token}
-            )
-            return Response({
-                'message': 'Password reset email sent',
-                'uidb64': uidb64,
-                'token': token
-            }, status=status.HTTP_200_OK)
-        return Response({'error': 'Invalid email'}, status=status.HTTP_400_BAD_REQUEST)
+        send_mail(
+            subject="Code de réinitialisation de mot de passe",
+            message=(
+                f"Bonjour {user.username},\n\n"
+                f"Votre code de réinitialisation est : {otp}.\n"
+                "Il expire dans 10 minutes."
+            ),
+            from_email='Fliiply <no-reply@fliiply.com>',
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+
+        return Response({'message': 'Password reset code sent'}, status=status.HTTP_200_OK)
 
 class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
@@ -327,102 +307,84 @@ class PasswordResetConfirmView(APIView):
     @swagger_auto_schema(
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            required=['uidb64', 'token', 'new_password'],
+            required=['email', 'otp', 'new_password'],
             properties={
-                'uidb64': openapi.Schema(type=openapi.TYPE_STRING, description='Encoded user ID from reset email'),
-                'token': openapi.Schema(type=openapi.TYPE_STRING, description='Token from reset email'),
+                'email': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL),
+                'otp': openapi.Schema(type=openapi.TYPE_STRING),
                 'new_password': openapi.Schema(type=openapi.TYPE_STRING, description='New password to set'),
             },
         ),
         responses={
             200: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
-                properties={
-                    'message': openapi.Schema(type=openapi.TYPE_STRING, description='Success message')
-                }
+                properties={'message': openapi.Schema(type=openapi.TYPE_STRING)}
             ),
             400: "Bad Request",
-            403: "Invalid token"
+            403: "Invalid OTP"
         },
-        operation_description="Confirm password reset using uidb64 and token, and set a new password."
+        operation_description="Confirm password reset using email and OTP, and set a new password."
     )
     def post(self, request):
-        uidb64 = request.data.get('uidb64')
-        token = request.data.get('token')
+        email = request.data.get('email')
+        otp = request.data.get('otp')
         new_password = request.data.get('new_password')
 
-        if not all([uidb64, token, new_password]):
-            return Response({'error': 'uidb64, token, and new_password are required'}, status=status.HTTP_400_BAD_REQUEST)
+        if not all([email, otp, new_password]):
+            return Response({'error': 'email, otp, and new_password are required'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            uid = force_str(urlsafe_base64_decode(uidb64))
-            user = User.objects.get(pk=uid)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            user = None
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if user is not None and default_token_generator.check_token(user, token):
-            form = SetPasswordForm(user, {'new_password1': new_password, 'new_password2': new_password})
-            if form.is_valid():
-                form.save()
-                return Response({'message': 'Password reset successfully'}, status=status.HTTP_200_OK)
-            return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
-        return Response({'error': 'Invalid token or user'}, status=status.HTTP_403_FORBIDDEN)
+        if user.is_password_reset_otp_valid(otp):
+            user.set_password(new_password)
+            user.password_reset_otp = None
+            user.password_reset_otp_expiry = None
+            user.save()
+            return Response({'message': 'Password reset successfully'}, status=status.HTTP_200_OK)
+        return Response({'error': 'Invalid OTP'}, status=status.HTTP_403_FORBIDDEN)
 
 class VerifyEmailView(APIView):
     permission_classes = [AllowAny]
 
     @swagger_auto_schema(
-        manual_parameters=[
-            openapi.Parameter(
-                'uidb64',
-                openapi.IN_QUERY,
-                description="Encoded user ID",
-                type=openapi.TYPE_STRING,
-                required=True
-            ),
-            openapi.Parameter(
-                'token',
-                openapi.IN_QUERY,
-                description="Verification token",
-                type=openapi.TYPE_STRING,
-                required=True
-            ),
-        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['email', 'otp'],
+            properties={
+                'email': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL),
+                'otp': openapi.Schema(type=openapi.TYPE_STRING),
+            },
+        ),
         responses={
             200: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
-                properties={
-                    'message': openapi.Schema(type=openapi.TYPE_STRING, description='Success message')
-                }
+                properties={'message': openapi.Schema(type=openapi.TYPE_STRING)}
             ),
             400: "Bad Request",
-            403: "Invalid or expired token"
+            403: "Invalid or expired OTP",
         },
-        operation_description="Verify a user's email using the provided uidb64 and token."
+        operation_description="Verify a user's email using a 6-digit OTP."
     )
-    def get(self, request):
-        uidb64 = request.GET.get('uidb64')
-        token = request.GET.get('token')
-
-        if not all([uidb64, token]):
-            return Response({'error': 'uidb64 and token are required'}, status=status.HTTP_400_BAD_REQUEST)
+    def post(self, request):
+        email = request.data.get('email')
+        otp = request.data.get('otp')
+        if not email or not otp:
+            return Response({'error': 'email and otp are required'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            uid = force_str(urlsafe_base64_decode(uidb64))
-            user = User.objects.get(pk=uid)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            user = None
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if user is not None and user.email_verification_token == token:
-            if user.is_verification_token_valid():
-                user.is_email_verified = True
-                user.email_verification_token = None
-                user.email_verification_expiry = None
-                user.save()
-                return Response({'message': 'Email verified successfully'}, status=status.HTTP_200_OK)
-            else:
-                return Response({'error': 'Verification token has expired'}, status=status.HTTP_403_FORBIDDEN)
-        return Response({'error': 'Invalid token or user'}, status=status.HTTP_403_FORBIDDEN)
+        if user.is_email_otp_valid(otp):
+            user.is_email_verified = True
+            user.email_otp = None
+            user.email_otp_expiry = None
+            user.save()
+            return Response({'message': 'Email verified successfully'}, status=status.HTTP_200_OK)
+        return Response({'error': 'Invalid or expired OTP'}, status=status.HTTP_403_FORBIDDEN)
 
 class ResendVerificationEmailView(APIView):
     permission_classes = [IsAuthenticated]
@@ -446,25 +408,17 @@ class ResendVerificationEmailView(APIView):
         if user.is_email_verified:
             return Response({'error': 'Email is already verified'}, status=status.HTTP_403_FORBIDDEN)
 
-        # Générer un nouveau token et une nouvelle date d'expiration
-        user.email_verification_token = str(uuid.uuid4())
-        user.email_verification_expiry = timezone.now() + timedelta(hours=24)
+        otp = f"{randint(100000, 999999)}"
+        user.email_otp = otp
+        user.email_otp_expiry = timezone.now() + timedelta(minutes=10)
         user.save()
 
-        # Générer l'URL de vérification
-        uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-        token = user.email_verification_token
-        frontend_url = "http://localhost:3000/email/confirm"
-        verification_url = f"{frontend_url}?uidb64={uidb64}&token={token}"
-
-        # Envoyer l'email de vérification
         send_mail(
-            subject="Vérifiez votre adresse email",
+            subject="Code de vérification de votre email",
             message=(
                 f"Bonjour {user.username},\n\n"
-                f"Veuillez cliquer sur le lien suivant pour vérifier votre adresse email :\n"
-                f"{verification_url}\n\n"
-                "Ce lien est valide pendant 24 heures. Si vous n'avez pas créé de compte, ignorez cet email."
+                f"Votre nouveau code de vérification est : {otp}.\n"
+                "Il expire dans 10 minutes."
             ),
             from_email="Fliiply <no-reply@fliiply.com>",
             recipient_list=[user.email],
