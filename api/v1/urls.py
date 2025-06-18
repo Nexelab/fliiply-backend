@@ -7,5 +7,6 @@ urlpatterns = [
     path('', include('products.urls')),
     path('', include('orders.urls')),
     path('', include('disputes.urls')),
+    path('', include('searches.urls')),
     path('stripe/', include(stripe_patterns)),
 ]
