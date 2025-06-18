@@ -11,6 +11,7 @@ from .models import (
     Listing,
     Collection,
     CollectionItem,
+    SearchHistory,
 )
 
 # --- Base Serializers ---
@@ -188,3 +189,10 @@ class CollectionSerializer(serializers.ModelSerializer):
         if variants is not None:
             instance.variants.set(variants)
         return instance
+
+
+class SearchHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SearchHistory
+        fields = ['id', 'user', 'query', 'filters', 'searched_at']
+        read_only_fields = ['id', 'searched_at']

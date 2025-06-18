@@ -72,3 +72,24 @@ per user:
 ```bash
 python manage.py clean_search_history
 ```
+## Search suggestions
+
+`GET /api/search/suggestions/?query=<text>` returns an array of suggestion strings
+matching the given query. Suggestions are pulled from product names, series and
+block fields and may include frequent search terms.
+
+## Search endpoint
+
+The `/api/search/` URL returns active listings matching a query. Example:
+
+```http
+GET /api/search/?q=pikachu&language=EN&min_price=5&max_price=20
+```
+
+Available filters include:
+
+- `tcg_type`, `block`, `series`
+- `language`, `version`, `condition`, `grade`
+- `min_price`, `max_price`, and `availability` (`in_stock` or `out_of_stock`)
+
+Results are paginated using DRF's standard paginator.
