@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from .models import User, Address
+from .models import User, Address, ProfessionalInfo
 from accounts.services.stripe_service import create_stripe_account
 
 class CustomUserCreationForm(UserCreationForm):
@@ -67,3 +67,9 @@ class AddressAdmin(admin.ModelAdmin):
     list_display = ('user', 'street', 'city', 'postal_code', 'country')
     search_fields = ('user__username', 'street', 'city', 'postal_code', 'country')
     list_filter = ('country', 'city')
+
+
+@admin.register(ProfessionalInfo)
+class ProfessionalInfoAdmin(admin.ModelAdmin):
+    list_display = ('user', 'company_name', 'siret_number', 'vat_number')
+    search_fields = ('user__username', 'company_name', 'siret_number', 'vat_number')

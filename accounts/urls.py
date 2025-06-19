@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from accounts.views import UserViewSet, RegisterView, ChangeRoleView, CustomTokenObtainPairView, AddressViewSet, \
     PasswordResetRequestView, PasswordResetConfirmView, VerifyEmailView, ResendVerificationEmailView, VerifyKYCView, \
-    StripeSetupIntentView, StripeSubscriptionView
+    StripeSetupIntentView, StripeSubscriptionView, ProfessionalInfoViewSet
 from .views.onboarding import StripeOnboardingView
 from .views.webhook import stripe_webhook
 from django.views.generic import TemplateView
@@ -12,6 +12,7 @@ from django.views.generic import TemplateView
 router = DefaultRouter()
 router.register(r'', UserViewSet, basename='users')
 router.register(r'addresses', AddressViewSet, basename='addresses')
+router.register(r'professional-info', ProfessionalInfoViewSet, basename='professional-info')
 
 # Routes d'authentification
 auth_patterns = [

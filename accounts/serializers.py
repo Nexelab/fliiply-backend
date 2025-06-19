@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from .models import User, Address
+from .models import User, Address, ProfessionalInfo
 from accounts.services import create_stripe_account
 
 User = get_user_model()
@@ -23,6 +23,13 @@ class AddressSerializer(serializers.ModelSerializer):
             if existing_billing.exists():
                 raise serializers.ValidationError({"address_type": "L'utilisateur a déjà une adresse de facturation."})
         return data
+
+
+class ProfessionalInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProfessionalInfo
+        fields = ['company_name', 'siret_number', 'vat_number', 'company_address']
+
 
 class UserSerializer(serializers.ModelSerializer):
     addresses = AddressSerializer(many=True, read_only=True)
@@ -109,4 +116,17 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             user.is_buyer = True
 
         user.save()
+        return user
+
+
+class UserProfessionalRegisterSerializer(UserRegisterSerializer):
+    professional_info = ProfessionalInfoSerializer(write_only=True)
+
+    class Meta(UserRegisterSerializer.Meta):
+        fields = UserRegisterSerializer.Meta.fields + ['professional_info']
+
+    def create(self, validated_data):
+        prof_data = validated_data.pop('professional_info')
+        user = super().create(validated_data)
+        ProfessionalInfo.objects.create(user=user, **prof_data)
         return user
