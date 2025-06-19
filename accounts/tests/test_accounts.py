@@ -8,6 +8,8 @@ def test_register_sends_otp():
     client = APIClient()
     data = {
         'username': 'otpuser',
+        'first_name': 'Otp',
+        'last_name': 'User',
         'email': 'otp@example.com',
         'password': 'pass1234',
         'confirm_password': 'pass1234',

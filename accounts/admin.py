@@ -7,12 +7,19 @@ from accounts.services.stripe_service import create_stripe_account
 class CustomUserCreationForm(UserCreationForm):
     class Meta:
         model = User
-        fields = ('username', 'email', 'phone_number', 'subscribed_to_newsletter', 'is_staff', 'is_verifier', 'is_active')
+        fields = (
+            'username', 'first_name', 'last_name', 'email', 'phone_number',
+            'subscribed_to_newsletter', 'is_staff', 'is_verifier', 'is_active'
+        )
 
 class CustomUserChangeForm(UserChangeForm):
     class Meta:
         model = User
-        fields = ('username', 'email', 'phone_number', 'subscribed_to_newsletter', 'accepted_terms', 'accepted_terms_at', 'is_staff', 'is_verifier', 'is_active', 'groups')
+        fields = (
+            'username', 'first_name', 'last_name', 'email', 'phone_number',
+            'subscribed_to_newsletter', 'accepted_terms', 'accepted_terms_at',
+            'is_staff', 'is_verifier', 'is_active', 'groups'
+        )
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
@@ -20,7 +27,7 @@ class UserAdmin(BaseUserAdmin):
     add_form = CustomUserCreationForm
 
     list_display = (
-        'username', 'email', 'phone_number',
+        'username', 'first_name', 'last_name', 'email', 'phone_number',
         'role', 'rating', 'stripe_account_id', 'stripe_account_status', 'is_kyc_verified',
         'subscribed_to_newsletter', 'accepted_terms', 'accepted_terms_at',
         'is_staff', 'is_verifier', 'is_superuser', 'is_active'
@@ -29,7 +36,7 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         ('Informations personnelles', {'fields': (
-            'email', 'phone_number',
+            'first_name', 'last_name', 'email', 'phone_number',
             'subscribed_to_newsletter', 'accepted_terms', 'accepted_terms_at',
             'role', 'rating', 'stripe_account_status', 'is_kyc_verified'
         )
@@ -40,14 +47,14 @@ class UserAdmin(BaseUserAdmin):
         (None, {
             'classes': ('wide',),
             'fields': (
-                'username', 'email', 'phone_number', 'subscribed_to_newsletter',
-                'role',
+                'username', 'first_name', 'last_name', 'email', 'phone_number',
+                'subscribed_to_newsletter', 'role',
                 'password1', 'password2',
                 'is_staff', 'is_verifier', 'is_active', 'groups'
             ),
         }),
     )
-    search_fields = ('username', 'email', 'phone_number')
+    search_fields = ('username', 'first_name', 'last_name', 'email', 'phone_number')
     ordering = ('username',)
     filter_horizontal = ('groups',)
     readonly_fields = ('rating', 'stripe_account_id', 'is_kyc_verified')

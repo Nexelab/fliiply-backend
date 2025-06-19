@@ -38,8 +38,9 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'username', 'email', 'password', 'phone_number', 'is_buyer',
-            'is_seller', 'is_verifier', 'billing_address', 'addresses', 'is_email_verified',
+            'id', 'username', 'first_name', 'last_name', 'email', 'password',
+            'phone_number', 'is_buyer', 'is_seller', 'is_verifier',
+            'billing_address', 'addresses', 'is_email_verified',
             'role', 'rating', 'stripe_account_id', 'is_kyc_verified'
         ]
         read_only_fields = [
@@ -73,9 +74,15 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'confirm_password', 'phone_number', 'accept_terms', 'subscribed_to_newsletter', 'role']
+        fields = [
+            'username', 'first_name', 'last_name', 'email', 'password',
+            'confirm_password', 'phone_number', 'accept_terms',
+            'subscribed_to_newsletter', 'role'
+        ]
         extra_kwargs = {
             'phone_number': {'required': False},  # Assurer que phone_number est facultatif
+            'first_name': {'required': True},
+            'last_name': {'required': True},
         }
 
     def validate(self, data):
@@ -98,6 +105,8 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         # Créer l'utilisateur
         user = User.objects.create_user(
             username=validated_data['username'],
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
             email=validated_data['email'],
             password=validated_data['password'],
             phone_number=validated_data.get('phone_number', None),
