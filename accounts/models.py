@@ -113,6 +113,7 @@ class Address(models.Model):
         ('billing', 'Facturation'),
         ('delivery', 'Livraison'),
         ('both', 'Facturation et Livraison'),
+        ('company', 'Entreprise'),
     )
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='addresses')
@@ -151,3 +152,20 @@ class Subscription(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.type}"
+
+
+class ProfessionalInfo(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="professional_info")
+    company_name = models.CharField(max_length=255)
+    siret_number = models.CharField(max_length=20, blank=True, null=True)
+    vat_number = models.CharField(max_length=20, blank=True, null=True)
+    company_address = models.OneToOneField(
+        'Address',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='company_info'
+    )
+
+    def __str__(self):
+        return self.company_name

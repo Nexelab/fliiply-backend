@@ -11,8 +11,10 @@ from .main import (
     VerifyEmailView,
     ResendVerificationEmailView,
     VerifyKYCView,
+    ProfessionalInfoViewSet,
 )
 
 from .onboarding import StripeOnboardingView
 from .main import StripeSetupIntentView, StripeSubscriptionView
 from .webhook import stripe_webhook
+

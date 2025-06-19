@@ -14,8 +14,14 @@ from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from accounts.models import User, Address
-from accounts.serializers import UserSerializer, AddressSerializer, UserRegisterSerializer
+from accounts.models import User, Address, ProfessionalInfo
+from accounts.serializers import (
+    UserSerializer,
+    AddressSerializer,
+    UserRegisterSerializer,
+    UserProfessionalRegisterSerializer,
+    ProfessionalInfoSerializer,
+)
 from accounts.permissions import IsOwner, IsEmailVerified
 from accounts.services import create_stripe_account, generate_account_link
 from accounts.services import create_setup_intent, create_subscription
@@ -140,7 +146,13 @@ class RegisterView(APIView):
         operation_description="Register a new user with the specified details."
     )
     def post(self, request):
-        serializer = UserRegisterSerializer(data=request.data)
+        role = request.data.get('role', User.Role.PARTICULIER)
+        serializer_class = (
+            UserProfessionalRegisterSerializer
+            if role == User.Role.PROFESSIONNEL
+            else UserRegisterSerializer
+        )
+        serializer = serializer_class(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
             otp = f"{randint(100000, 999999)}"
@@ -251,6 +263,20 @@ class AddressViewSet(viewsets.ModelViewSet):
     )
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
+
+
+class ProfessionalInfoViewSet(viewsets.ModelViewSet):
+    queryset = ProfessionalInfo.objects.all()
+    serializer_class = ProfessionalInfoSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return ProfessionalInfo.objects.none()
+        return ProfessionalInfo.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 class PasswordResetRequestView(APIView):
     permission_classes = [AllowAny]
@@ -499,3 +525,4 @@ class StripeSubscriptionView(APIView):
             return Response({'error': 'price_id is required'}, status=status.HTTP_400_BAD_REQUEST)
         subscription_id = create_subscription(request.user, price_id)
         return Response({'subscription_id': subscription_id})
+
