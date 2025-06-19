@@ -87,6 +87,19 @@ class User(AbstractUser):
         help_text="Indique si l'utilisateur a complété le KYC avec succès."
     )
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['email']),
+            models.Index(fields=['stripe_account_id']),
+            models.Index(fields=['stripe_customer_id']),
+            models.Index(fields=['is_seller', 'is_email_verified']),
+            models.Index(fields=['is_buyer']),
+            models.Index(fields=['is_email_verified']),
+            models.Index(fields=['role']),
+            models.Index(fields=['stripe_account_status']),
+            models.Index(fields=['is_kyc_verified']),
+        ]
+
     def __str__(self):
         return self.username
 

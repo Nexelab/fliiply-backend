@@ -77,7 +77,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         return Order.objects.none()
 
     @swagger_auto_schema(
-        operation_description="List all orders (buyers see their own orders, sellers see orders they sold).",
+        operation_description="List all orders (buyers see their own orders, sellers see orders they sold)",
+        operation_summary="List Orders",
+        tags=['Orders'],
         responses={
             200: openapi.Response(
                 description="List of orders",
@@ -190,7 +192,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         return super().list(request, *args, **kwargs)
 
     @swagger_auto_schema(
-        operation_description="Create a new order (buyers only).",
+        operation_description="Create a new order from cart items (buyers only)",
+        operation_summary="Create Order",
+        tags=['Orders'],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             required=['cart_items', 'buyer_address'],
@@ -314,7 +318,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         return super().create(request, *args, **kwargs)
 
     @swagger_auto_schema(
-        operation_description="Retrieve an order by ID (buyers and sellers only).",
+        operation_description="Retrieve details of a specific order",
+        operation_summary="Get Order",
+        tags=['Orders'],
         responses={
             200: OrderSerializer,
             401: "Unauthorized",
@@ -374,6 +380,33 @@ class OrderViewSet(viewsets.ModelViewSet):
             OrderItem.objects.create(order=order, listing=listing, quantity=cart_item.quantity)
             cart_item.delete()
 
+    @swagger_auto_schema(
+        operation_description="Update order details (sellers only)",
+        operation_summary="Update Order",
+        tags=['Orders'],
+        responses={200: OrderSerializer, 400: "Bad Request", 403: "Forbidden"}
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Partially update order details (sellers only)",
+        operation_summary="Update Order Partially",
+        tags=['Orders'],
+        responses={200: OrderSerializer, 400: "Bad Request", 403: "Forbidden"}
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Delete an order (sellers only)",
+        operation_summary="Delete Order",
+        tags=['Orders'],
+        responses={204: "No Content", 403: "Forbidden"}
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+
     def perform_update(self, serializer):
         order = self.get_object()
         if not (
@@ -385,7 +418,9 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated, IsBuyer])
     @swagger_auto_schema(
-        operation_description="Confirm the Stripe payment for this order.",
+        operation_description="Confirm the Stripe payment for this order",
+        operation_summary="Pay for Order",
+        tags=['Orders'],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={

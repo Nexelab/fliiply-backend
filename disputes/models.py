@@ -22,6 +22,17 @@ class Dispute(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['order']),
+            models.Index(fields=['initiator']),
+            models.Index(fields=['status']),
+            models.Index(fields=['moderator']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['status', 'created_at']),
+            models.Index(fields=['moderator', 'status']),
+        ]
+
     def __str__(self):
         return f"Dispute {self.id} on order {self.order_id}"
 
@@ -32,6 +43,14 @@ class DisputeMessage(models.Model):
     content = models.TextField(blank=True)
     attachment = models.FileField(upload_to="dispute_attachments/", blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['dispute']),
+            models.Index(fields=['sender']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['dispute', 'created_at']),
+        ]
 
     def __str__(self):
         return f"Message by {self.sender} in dispute {self.dispute_id}"

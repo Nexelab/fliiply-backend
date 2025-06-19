@@ -12,6 +12,13 @@ class CartItem(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        indexes = [
+            models.Index(fields=['buyer']),
+            models.Index(fields=['listing']),
+            models.Index(fields=['reserved_until']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['buyer', 'created_at']),
+        ]
         unique_together = ("buyer", "listing")
 
     def __str__(self):
@@ -46,6 +53,16 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['buyer']),
+            models.Index(fields=['status']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['stripe_payment_intent_id']),
+            models.Index(fields=['buyer', 'status']),
+            models.Index(fields=['status', 'created_at']),
+        ]
+
     def __str__(self):
         return f"Order {self.id} by {self.buyer.username}"
 
@@ -54,6 +71,12 @@ class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="order_items")
     quantity = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['order']),
+            models.Index(fields=['listing']),
+        ]
 
     def __str__(self):
         return f"{self.quantity}x {self.listing} in order {self.order_id}"

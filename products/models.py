@@ -90,19 +90,23 @@ class Product(models.Model):
         super().save(*args, **kwargs)
 
     def calculate_average_price(self):
-        listings = self.listings.all()
-        if listings.exists():
-            total_price = sum(listing.price for listing in listings)
-            return total_price / listings.count()
-        return 0
+        from django.db.models import Avg
+        return self.listings.aggregate(avg_price=Avg('price'))['avg_price'] or 0
 
     def calculate_total_stock(self):
-        listings = self.listings.all()
-        if listings.exists():
-            return sum(listing.stock for listing in listings)
-        return 0
+        from django.db.models import Sum
+        return self.listings.aggregate(total_stock=Sum('stock'))['total_stock'] or 0
 
     class Meta:
+        indexes = [
+            models.Index(fields=['name']),
+            models.Index(fields=['tcg_type']),
+            models.Index(fields=['block']),
+            models.Index(fields=['series']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['tcg_type', 'name']),
+            models.Index(fields=['block', 'series']),
+        ]
         constraints = [
             models.UniqueConstraint(fields=['name', 'block', 'series'], name='unique_product')
         ]
@@ -141,6 +145,15 @@ class Variant(models.Model):
         return base
 
     class Meta:
+        indexes = [
+            models.Index(fields=['product']),
+            models.Index(fields=['language']),
+            models.Index(fields=['version']),
+            models.Index(fields=['condition']),
+            models.Index(fields=['grade']),
+            models.Index(fields=['product', 'language']),
+            models.Index(fields=['condition', 'grade']),
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=['product', 'language', 'version', 'condition', 'grade'],
@@ -168,6 +181,18 @@ class Listing(models.Model):
         return f"{self.seller} selling {self.variant} at {self.price}€ (Stock: {self.stock})"
 
     class Meta:
+        indexes = [
+            models.Index(fields=['status']),
+            models.Index(fields=['seller']),
+            models.Index(fields=['product']),
+            models.Index(fields=['variant']),
+            models.Index(fields=['price']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['status', 'price']),
+            models.Index(fields=['seller', 'status']),
+            models.Index(fields=['product', 'status']),
+            models.Index(fields=['stock']),
+        ]
         ordering = ['-created_at']
 
 

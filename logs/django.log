@@ -1,0 +1,221 @@
+WARNING 2025-06-19 09:37:11,331 log 16043 8574225408 Not Found: /api/disputes/1/add_message/
+ERROR 2025-06-19 09:37:11,598 log 16043 8574225408 Internal Server Error: /api/search/suggestions/
+Traceback (most recent call last):
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/views/decorators/csrf.py", line 56, in wrapper_view
+    return view_func(*args, **kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/views/generic/base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/rest_framework/views.py", line 509, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/rest_framework/views.py", line 469, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/rest_framework/views.py", line 480, in raise_uncaught_exception
+    raise exc
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/rest_framework/views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/products/views.py", line 203, in get
+    SearchHistory.objects.filter(term__icontains=query)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/query.py", line 1436, in filter
+    return self._filter_or_exclude(False, args, kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/query.py", line 1454, in _filter_or_exclude
+    clone._filter_or_exclude_inplace(negate, args, kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/query.py", line 1461, in _filter_or_exclude_inplace
+    self._query.add_q(Q(*args, **kwargs))
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/sql/query.py", line 1546, in add_q
+    clause, _ = self._add_q(q_object, self.used_aliases)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/sql/query.py", line 1577, in _add_q
+    child_clause, needed_inner = self.build_filter(
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/sql/query.py", line 1427, in build_filter
+    lookups, parts, reffed_expression = self.solve_lookup_type(arg, summarize)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/sql/query.py", line 1237, in solve_lookup_type
+    _, field, _, lookup_parts = self.names_to_path(lookup_splitted, self.get_meta())
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/sql/query.py", line 1725, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'term' into field. Choices are: filters, id, query, searched_at, user, user_id
+ERROR 2025-06-19 09:37:11,788 log 16043 8574225408 Internal Server Error: /api/search/suggestions/
+Traceback (most recent call last):
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/views/decorators/csrf.py", line 56, in wrapper_view
+    return view_func(*args, **kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/views/generic/base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/rest_framework/views.py", line 509, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/rest_framework/views.py", line 469, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/rest_framework/views.py", line 480, in raise_uncaught_exception
+    raise exc
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/rest_framework/views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/products/views.py", line 203, in get
+    SearchHistory.objects.filter(term__icontains=query)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/query.py", line 1436, in filter
+    return self._filter_or_exclude(False, args, kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/query.py", line 1454, in _filter_or_exclude
+    clone._filter_or_exclude_inplace(negate, args, kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/query.py", line 1461, in _filter_or_exclude_inplace
+    self._query.add_q(Q(*args, **kwargs))
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/sql/query.py", line 1546, in add_q
+    clause, _ = self._add_q(q_object, self.used_aliases)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/sql/query.py", line 1577, in _add_q
+    child_clause, needed_inner = self.build_filter(
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/sql/query.py", line 1427, in build_filter
+    lookups, parts, reffed_expression = self.solve_lookup_type(arg, summarize)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/sql/query.py", line 1237, in solve_lookup_type
+    _, field, _, lookup_parts = self.names_to_path(lookup_splitted, self.get_meta())
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/sql/query.py", line 1725, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'term' into field. Choices are: filters, id, query, searched_at, user, user_id
+WARNING 2025-06-19 09:55:52,565 log 16833 8574225408 Not Found: /api/disputes/1/add_message/
+WARNING 2025-06-19 09:59:27,901 log 16985 8574225408 Not Found: /api/disputes/1/add_message/
+WARNING 2025-06-19 10:04:09,170 log 17217 8574225408 Not Found: /api/disputes/1/add_message/
+WARNING 2025-06-19 10:04:09,171 log 17217 8574225408 Not Found: /api/disputes/1/resolve/
+WARNING 2025-06-19 10:04:09,173 log 17217 8574225408 Bad Request: /api/disputes/
+WARNING 2025-06-19 10:04:34,354 log 17265 8574225408 Not Found: /api/disputes/1/add_message/
+WARNING 2025-06-19 10:04:34,355 log 17265 8574225408 Not Found: /api/disputes/1/resolve/
+WARNING 2025-06-19 10:04:34,356 log 17265 8574225408 Bad Request: /api/disputes/
+ERROR 2025-06-19 10:04:34,935 log 17265 8574225408 Internal Server Error: /api/search/
+Traceback (most recent call last):
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/views/decorators/csrf.py", line 56, in wrapper_view
+    return view_func(*args, **kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/views/generic/base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/rest_framework/views.py", line 509, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/rest_framework/views.py", line 469, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/rest_framework/views.py", line 480, in raise_uncaught_exception
+    raise exc
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/rest_framework/views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/rest_framework/generics.py", line 203, in get
+    return self.list(request, *args, **kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/products/views.py", line 272, in list
+    SearchHistory.objects.create(
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/query.py", line 656, in create
+    obj = self.model(**kwargs)
+  File "/Users/vincentverges/Nexelab/Fliiply/fliply_backend/venv/lib/python3.9/site-packages/django/db/models/base.py", line 567, in __init__
+    raise TypeError(
+TypeError: SearchHistory() got unexpected keyword arguments: 'filters'
+WARNING 2025-06-19 10:13:11,659 log 18383 8574225408 Not Found: /api/disputes/1/add_message/
+WARNING 2025-06-19 10:13:11,660 log 18383 8574225408 Not Found: /api/disputes/1/resolve/
+WARNING 2025-06-19 10:13:11,662 log 18383 8574225408 Bad Request: /api/disputes/
+INFO 2025-06-19 10:24:54,228 autoreload 45 281473764229152 Watching for file changes with StatReloader
+INFO 2025-06-19 10:26:35,161 autoreload 45 281473764229152 /app/products/views.py changed, reloading.
+INFO 2025-06-19 10:26:35,876 autoreload 47 281473345945632 Watching for file changes with StatReloader
+INFO 2025-06-19 10:28:53,811 autoreload 47 281473345945632 /app/core/exceptions.py changed, reloading.
+INFO 2025-06-19 10:28:54,511 autoreload 49 281473324900384 Watching for file changes with StatReloader
+INFO 2025-06-19 10:29:10,065 autoreload 49 281473324900384 /app/core/exceptions.py changed, reloading.
+INFO 2025-06-19 10:29:10,789 autoreload 51 281472821948448 Watching for file changes with StatReloader
+WARNING 2025-06-19 10:33:06,491 log 24908 8574225408 Not Found: /api/disputes/1/add_message/
+WARNING 2025-06-19 10:33:06,493 log 24908 8574225408 Not Found: /api/disputes/1/resolve/
+WARNING 2025-06-19 10:33:06,494 log 24908 8574225408 Bad Request: /api/disputes/
+INFO 2025-06-19 10:37:40,304 basehttp 51 281472707654048 "GET /swagger/ HTTP/1.1" 200 1587
+INFO 2025-06-19 10:37:40,411 basehttp 51 281472707654048 "GET /swagger/?format=openapi HTTP/1.1" 200 62107
+INFO 2025-06-19 10:57:04,793 basehttp 51 281472625865120 "GET /health/ HTTP/1.1" 200 214
+INFO 2025-06-19 10:58:25,152 basehttp 51 281472625865120 "GET /swagger/ HTTP/1.1" 200 1587
+INFO 2025-06-19 10:58:25,257 basehttp 51 281472625865120 "GET /swagger/?format=openapi HTTP/1.1" 200 62107
+INFO 2025-06-19 10:58:26,075 basehttp 51 281472625865120 "GET /swagger/ HTTP/1.1" 200 1587
+INFO 2025-06-19 10:58:26,149 basehttp 51 281472625865120 "GET /swagger/?format=openapi HTTP/1.1" 200 62107
+INFO 2025-06-19 10:58:32,310 basehttp 51 281472707654048 "GET /swagger/ HTTP/1.1" 200 1587
+INFO 2025-06-19 10:58:32,390 basehttp 51 281472707654048 "GET /swagger/?format=openapi HTTP/1.1" 200 62107
+INFO 2025-06-19 10:58:32,983 basehttp 51 281472707654048 "GET /swagger/ HTTP/1.1" 200 1587
+INFO 2025-06-19 10:58:33,066 basehttp 51 281472707654048 "GET /swagger/?format=openapi HTTP/1.1" 200 62107
+INFO 2025-06-19 10:58:33,681 basehttp 51 281472707654048 "GET /swagger/ HTTP/1.1" 200 1587
+INFO 2025-06-19 10:58:33,757 basehttp 51 281472707654048 "GET /swagger/?format=openapi HTTP/1.1" 200 62107
+INFO 2025-06-19 11:00:49,579 autoreload 51 281472821948448 /app/core/urls.py changed, reloading.
+INFO 2025-06-19 11:00:50,309 autoreload 86 281473856036896 Watching for file changes with StatReloader
+INFO 2025-06-19 11:01:31,300 autoreload 86 281473856036896 /app/core/health.py changed, reloading.
+INFO 2025-06-19 11:01:31,990 autoreload 88 281473759977504 Watching for file changes with StatReloader
+INFO 2025-06-19 11:03:08,533 autoreload 88 281473759977504 /app/core/health.py changed, reloading.
+INFO 2025-06-19 11:03:09,256 autoreload 90 281473567768608 Watching for file changes with StatReloader
+INFO 2025-06-19 11:03:31,837 autoreload 90 281473567768608 /app/core/health.py changed, reloading.
+INFO 2025-06-19 11:03:32,522 autoreload 92 281473096577056 Watching for file changes with StatReloader
+INFO 2025-06-19 11:03:48,004 autoreload 92 281473096577056 /app/core/health.py changed, reloading.
+INFO 2025-06-19 11:03:48,969 autoreload 94 281473673568288 Watching for file changes with StatReloader
+INFO 2025-06-19 11:04:19,107 autoreload 94 281473673568288 /app/core/health.py changed, reloading.
+INFO 2025-06-19 11:04:19,759 autoreload 96 281473106903072 Watching for file changes with StatReloader
+INFO 2025-06-19 11:05:13,174 autoreload 96 281473106903072 /app/products/views.py changed, reloading.
+INFO 2025-06-19 11:05:13,871 autoreload 98 281473003663392 Watching for file changes with StatReloader
+INFO 2025-06-19 11:05:38,490 autoreload 98 281473003663392 /app/products/views.py changed, reloading.
+INFO 2025-06-19 11:05:39,211 autoreload 100 281473467842592 Watching for file changes with StatReloader
+INFO 2025-06-19 11:06:17,135 autoreload 100 281473467842592 /app/products/views.py changed, reloading.
+INFO 2025-06-19 11:06:18,533 autoreload 102 281473044181024 Watching for file changes with StatReloader
+INFO 2025-06-19 11:06:37,346 autoreload 102 281473044181024 /app/products/views.py changed, reloading.
+INFO 2025-06-19 11:06:38,057 autoreload 104 281473046159392 Watching for file changes with StatReloader
+INFO 2025-06-19 11:07:02,659 autoreload 104 281473046159392 /app/products/views.py changed, reloading.
+INFO 2025-06-19 11:07:03,351 autoreload 106 281473839992864 Watching for file changes with StatReloader
+INFO 2025-06-19 11:08:30,583 autoreload 106 281473839992864 /app/products/views.py changed, reloading.
+INFO 2025-06-19 11:08:31,325 autoreload 108 281473872601120 Watching for file changes with StatReloader
+INFO 2025-06-19 11:08:58,008 autoreload 108 281473872601120 /app/accounts/views/main.py changed, reloading.
+INFO 2025-06-19 11:08:58,699 autoreload 110 281473186885664 Watching for file changes with StatReloader
+INFO 2025-06-19 11:09:28,489 autoreload 110 281473186885664 /app/accounts/views/main.py changed, reloading.
+INFO 2025-06-19 11:09:29,165 autoreload 112 281473633996832 Watching for file changes with StatReloader
+INFO 2025-06-19 11:10:14,287 autoreload 112 281473633996832 /app/accounts/views/main.py changed, reloading.
+INFO 2025-06-19 11:10:14,917 autoreload 114 281473657331744 Watching for file changes with StatReloader
+INFO 2025-06-19 11:10:28,285 autoreload 114 281473657331744 /app/accounts/views/main.py changed, reloading.
+INFO 2025-06-19 11:10:28,989 autoreload 116 281473076953120 Watching for file changes with StatReloader
+INFO 2025-06-19 11:10:57,721 autoreload 116 281473076953120 /app/accounts/views/main.py changed, reloading.
+INFO 2025-06-19 11:10:58,386 autoreload 118 281473101877280 Watching for file changes with StatReloader
+INFO 2025-06-19 11:11:17,902 autoreload 118 281473101877280 /app/accounts/views/main.py changed, reloading.
+INFO 2025-06-19 11:11:18,562 autoreload 120 281473663774752 Watching for file changes with StatReloader
+INFO 2025-06-19 11:11:58,595 autoreload 120 281473663774752 /app/accounts/views/main.py changed, reloading.
+INFO 2025-06-19 11:11:59,388 autoreload 122 281473605746720 Watching for file changes with StatReloader
+INFO 2025-06-19 11:12:54,774 autoreload 122 281473605746720 /app/accounts/views/main.py changed, reloading.
+INFO 2025-06-19 11:12:55,441 autoreload 124 281473084538912 Watching for file changes with StatReloader
+INFO 2025-06-19 11:13:11,901 autoreload 124 281473084538912 /app/accounts/views/main.py changed, reloading.
+INFO 2025-06-19 11:13:12,591 autoreload 126 281473101492256 Watching for file changes with StatReloader
+INFO 2025-06-19 11:13:30,085 autoreload 126 281473101492256 /app/accounts/views/main.py changed, reloading.
+INFO 2025-06-19 11:13:30,811 autoreload 128 281473472319520 Watching for file changes with StatReloader
+INFO 2025-06-19 11:13:42,881 autoreload 7 281472860864544 Watching for file changes with StatReloader
+INFO 2025-06-19 11:15:32,495 autoreload 7 281472860864544 /app/products/views.py changed, reloading.
+INFO 2025-06-19 11:15:33,148 autoreload 9 281473017692192 Watching for file changes with StatReloader
+INFO 2025-06-19 11:15:41,235 autoreload 7 281473185447968 Watching for file changes with StatReloader
+INFO 2025-06-19 11:15:42,516 basehttp 7 281473070461344 "GET /swagger/ HTTP/1.1" 200 1597
+INFO 2025-06-19 11:15:42,615 basehttp 7 281473070461344 "GET /swagger/?format=openapi HTTP/1.1" 200 69469
+INFO 2025-06-19 11:18:53,433 autoreload 7 281473185447968 /app/disputes/views.py changed, reloading.
+INFO 2025-06-19 11:18:54,201 autoreload 11 281473287495712 Watching for file changes with StatReloader
+INFO 2025-06-19 11:20:23,453 autoreload 11 281473287495712 /app/orders/views.py changed, reloading.
+INFO 2025-06-19 11:20:24,246 autoreload 13 281473524949024 Watching for file changes with StatReloader
+INFO 2025-06-19 11:21:59,737 autoreload 13 281473524949024 /app/orders/views.py changed, reloading.
+INFO 2025-06-19 11:22:00,502 autoreload 15 281473439862816 Watching for file changes with StatReloader
+INFO 2025-06-19 11:22:18,099 autoreload 15 281473439862816 /app/orders/views.py changed, reloading.
+INFO 2025-06-19 11:22:18,810 autoreload 17 281472937685024 Watching for file changes with StatReloader
+INFO 2025-06-19 11:22:57,799 autoreload 17 281472937685024 /app/orders/views.py changed, reloading.
+INFO 2025-06-19 11:22:58,620 autoreload 19 281472941719584 Watching for file changes with StatReloader
+INFO 2025-06-19 11:23:18,259 autoreload 19 281472941719584 /app/orders/views.py changed, reloading.
+INFO 2025-06-19 11:23:19,035 autoreload 21 281473042563104 Watching for file changes with StatReloader
+INFO 2025-06-19 11:25:13,042 autoreload 21 281473042563104 /app/accounts/views/main.py changed, reloading.
+INFO 2025-06-19 11:25:13,850 autoreload 23 281472857935904 Watching for file changes with StatReloader
+INFO 2025-06-19 11:25:44,796 autoreload 23 281472857935904 /app/accounts/views/main.py changed, reloading.
+INFO 2025-06-19 11:25:45,481 autoreload 25 281473220317216 Watching for file changes with StatReloader
+INFO 2025-06-19 11:26:20,454 autoreload 25 281473220317216 /app/accounts/views/main.py changed, reloading.
+INFO 2025-06-19 11:26:21,198 autoreload 27 281473538453536 Watching for file changes with StatReloader
+INFO 2025-06-19 11:26:34,685 autoreload 27 281473538453536 /app/accounts/views/main.py changed, reloading.
+INFO 2025-06-19 11:26:35,403 autoreload 29 281473027289120 Watching for file changes with StatReloader
+INFO 2025-06-19 11:27:11,419 autoreload 29 281473027289120 /app/accounts/views/main.py changed, reloading.
+INFO 2025-06-19 11:27:12,167 autoreload 31 281472841707552 Watching for file changes with StatReloader
+INFO 2025-06-19 11:27:32,828 autoreload 31 281472841707552 /app/accounts/views/onboarding.py changed, reloading.
+INFO 2025-06-19 11:27:33,495 autoreload 33 281472878002208 Watching for file changes with StatReloader
+INFO 2025-06-19 11:28:44,421 autoreload 33 281472878002208 /app/searches/views.py changed, reloading.
+INFO 2025-06-19 11:28:45,161 autoreload 35 281473523691552 Watching for file changes with StatReloader
+INFO 2025-06-19 11:31:05,947 autoreload 7 281473812566048 Watching for file changes with StatReloader
+INFO 2025-06-19 11:32:22,404 basehttp 7 281473630400928 "GET /swagger/ HTTP/1.1" 200 1597
+INFO 2025-06-19 11:32:22,549 basehttp 7 281473630400928 "GET /swagger/?format=openapi HTTP/1.1" 200 71288

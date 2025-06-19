@@ -11,8 +11,8 @@ from products.models import (
     Grade,
     Variant,
     Listing,
-    SearchHistory,
 )
+from searches.models import SearchHistory
 
 
 @pytest.mark.django_db

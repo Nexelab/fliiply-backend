@@ -30,6 +30,9 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     permission_classes = [AllowAny]
 
     @swagger_auto_schema(
+        operation_description="Authenticate user and obtain JWT tokens",
+        operation_summary="User Login",
+        tags=['Authentication'],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             required=['username', 'password'],
@@ -47,13 +50,18 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 }
             ),
             401: "Unauthorized"
-        },
-        operation_description="Obtain a JWT token pair (access and refresh) by providing username and password."
+        }
     )
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
 
 class UserViewSet(viewsets.ModelViewSet):
+    """
+    User profile management.
+    
+    Allows authenticated users to view and update their own profile information.
+    Users can only access their own data for privacy and security.
+    """
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated, IsOwner]
@@ -64,30 +72,45 @@ class UserViewSet(viewsets.ModelViewSet):
         return User.objects.filter(id=self.request.user.id)
 
     @swagger_auto_schema(
-        responses={200: UserSerializer},
-        operation_description="Retrieve the authenticated user's details, including phone number, billing address, and all addresses."
+        operation_description="Retrieve the authenticated user's profile details",
+        operation_summary="Get User Profile",
+        tags=['User Management'],
+        responses={200: UserSerializer}
     )
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
     @swagger_auto_schema(
+        operation_description="Update the authenticated user's profile information",
+        operation_summary="Update User Profile",
+        tags=['User Management'],
         request_body=UserSerializer,
-        responses={200: UserSerializer, 400: "Bad Request"},
-        operation_description="Update the authenticated user's details, such as phone number."
+        responses={200: UserSerializer, 400: "Bad Request"}
     )
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
 
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     @swagger_auto_schema(
-        responses={200: UserSerializer},
-        operation_description="Retrieve the authenticated user's details via /accounts/me/."
+        operation_description="Get current user's profile information",
+        operation_summary="Get My Profile",
+        tags=['User Management'],
+        responses={200: UserSerializer}
     )
     def me(self, request):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
 
     @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    @swagger_auto_schema(
+        operation_description="Enable seller capabilities for the current user and create Stripe account",
+        operation_summary="Become Seller",
+        tags=['Seller Onboarding'],
+        responses={
+            200: openapi.Response(description="User is now a seller"),
+            400: openapi.Response(description="Error in seller setup")
+        }
+    )
     def become_seller(self, request):
         user = request.user
 
@@ -145,7 +168,9 @@ class RegisterView(APIView):
             ),
             400: "Bad Request"
         },
-        operation_description="Register a new user with the specified details."
+        operation_description="Register a new user account",
+        operation_summary="User Registration",
+        tags=['Authentication']
     )
     def post(self, request):
         role = request.data.get('role', User.Role.PARTICULIER)
@@ -207,7 +232,9 @@ class ChangeRoleView(APIView):
             403: "Forbidden",
             404: "Not Found"
         },
-        operation_description="Update the roles of a user (admin only)."
+        operation_description="Update user roles and permissions (Admin only)",
+        operation_summary="Change User Roles",
+        tags=['User Management']
     )
     def patch(self, request, user_id):
         try:
@@ -253,14 +280,18 @@ class AddressViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
     @swagger_auto_schema(
-        operation_description="List all addresses for the authenticated user.",
+        operation_description="List all addresses for the authenticated user",
+        operation_summary="List My Addresses",
+        tags=['User Management'],
         responses={200: AddressSerializer(many=True), 401: "Unauthorized"}
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
     @swagger_auto_schema(
-        operation_description="Create a new address for the authenticated user.",
+        operation_description="Create a new address for the authenticated user",
+        operation_summary="Add Address",
+        tags=['User Management'],
         responses={201: AddressSerializer, 400: "Bad Request", 401: "Unauthorized"}
     )
     def create(self, request, *args, **kwargs):
@@ -268,6 +299,12 @@ class AddressViewSet(viewsets.ModelViewSet):
 
 
 class ProfessionalInfoViewSet(viewsets.ModelViewSet):
+    """
+    Professional information management for business users.
+    
+    Allows professional users to manage their business information
+    including company details, tax information, and business address.
+    """
     queryset = ProfessionalInfo.objects.all()
     serializer_class = ProfessionalInfoSerializer
     permission_classes = [IsAuthenticated]
@@ -276,6 +313,60 @@ class ProfessionalInfoViewSet(viewsets.ModelViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return ProfessionalInfo.objects.none()
         return ProfessionalInfo.objects.filter(user=self.request.user)
+
+    @swagger_auto_schema(
+        operation_description="List professional information for the authenticated user",
+        operation_summary="List Professional Info",
+        tags=['User Management'],
+        responses={200: ProfessionalInfoSerializer(many=True)}
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Create professional information for the authenticated user",
+        operation_summary="Create Professional Info",
+        tags=['User Management'],
+        responses={201: ProfessionalInfoSerializer, 400: "Bad Request"}
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Retrieve professional information details",
+        operation_summary="Get Professional Info",
+        tags=['User Management'],
+        responses={200: ProfessionalInfoSerializer, 404: "Not Found"}
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Update professional information",
+        operation_summary="Update Professional Info",
+        tags=['User Management'],
+        responses={200: ProfessionalInfoSerializer, 400: "Bad Request"}
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Partially update professional information",
+        operation_summary="Update Professional Info Partially",
+        tags=['User Management'],
+        responses={200: ProfessionalInfoSerializer, 400: "Bad Request"}
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Delete professional information",
+        operation_summary="Delete Professional Info",
+        tags=['User Management'],
+        responses={204: "No Content"}
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -298,7 +389,9 @@ class PasswordResetRequestView(APIView):
             ),
             400: "Bad Request"
         },
-        operation_description="Request a password reset code for the specified user email."
+        operation_description="Request password reset code via email",
+        operation_summary="Request Password Reset",
+        tags=['Authentication']
     )
     def post(self, request):
         email = request.data.get('email')
@@ -350,7 +443,9 @@ class PasswordResetConfirmView(APIView):
             400: "Bad Request",
             403: "Invalid OTP"
         },
-        operation_description="Confirm password reset using email and OTP, and set a new password."
+        operation_description="Confirm password reset with OTP and set new password",
+        operation_summary="Confirm Password Reset",
+        tags=['Authentication']
     )
     def post(self, request):
         email = request.data.get('email')
@@ -393,7 +488,9 @@ class VerifyEmailView(APIView):
             400: "Bad Request",
             403: "Invalid or expired OTP",
         },
-        operation_description="Verify a user's email using a 6-digit OTP."
+        operation_description="Verify email address using OTP code",
+        operation_summary="Verify Email",
+        tags=['Authentication']
     )
     def post(self, request):
         email = request.data.get('email')
@@ -418,6 +515,9 @@ class ResendVerificationEmailView(APIView):
     permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
+        operation_description="Resend verification email to the authenticated user",
+        operation_summary="Resend Verification Email",
+        tags=['Authentication'],
         responses={
             200: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
@@ -427,8 +527,7 @@ class ResendVerificationEmailView(APIView):
             ),
             400: "Bad Request",
             403: "Email already verified"
-        },
-        operation_description="Resend a verification email to the authenticated user if their email is not yet verified."
+        }
     )
     def post(self, request):
         user = request.user
@@ -459,12 +558,15 @@ class VerifyKYCView(APIView):
     permission_classes = [IsAdminUser]
 
     @swagger_auto_schema(
+        operation_description="Mark a user as KYC verified (admin only)",
+        operation_summary="Verify User KYC",
+        tags=['User Management'],
         manual_parameters=[
             openapi.Parameter(
                 'user_id',
                 openapi.IN_PATH,
                 type=openapi.TYPE_INTEGER,
-                description="ID de l'utilisateur à marquer comme vérifié KYC",
+                description="ID of the user to mark as KYC verified",
                 required=True
             )
         ],
@@ -478,8 +580,7 @@ class VerifyKYCView(APIView):
             ),
             404: "User Not Found",
             403: "Forbidden"
-        },
-        operation_description="Marquer un utilisateur comme ayant complété le KYC (admin seulement)."
+        }
     )
     def post(self, request, user_id):
         try:
@@ -498,11 +599,13 @@ class StripeSetupIntentView(APIView):
     permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
+        operation_description="Create Stripe SetupIntent for saving payment methods",
+        operation_summary="Create Payment Setup Intent",
+        tags=['Payment & Billing'],
         responses={200: openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={'client_secret': openapi.Schema(type=openapi.TYPE_STRING)},
-        )},
-        operation_description="Génère un SetupIntent Stripe pour enregistrer une carte."
+        )}
     )
     def post(self, request):
         client_secret = create_setup_intent(request.user)
@@ -513,13 +616,15 @@ class StripeSubscriptionView(APIView):
     permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
+        operation_description="Create a Stripe subscription for premium features",
+        operation_summary="Create Subscription",
+        tags=['Payment & Billing'],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             required=['price_id'],
             properties={'price_id': openapi.Schema(type=openapi.TYPE_STRING)},
         ),
-        responses={200: openapi.Schema(type=openapi.TYPE_OBJECT, properties={'subscription_id': openapi.Schema(type=openapi.TYPE_STRING)})},
-        operation_description="Crée un abonnement Stripe pour les fonctionnalités premium."
+        responses={200: openapi.Schema(type=openapi.TYPE_OBJECT, properties={'subscription_id': openapi.Schema(type=openapi.TYPE_STRING)})}
     )
     def post(self, request):
         price_id = request.data.get('price_id')

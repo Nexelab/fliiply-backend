@@ -10,8 +10,10 @@ class StripeOnboardingView(APIView):
     permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
-        operation_summary="Génère un lien d'onboarding Stripe",
-        responses={200: openapi.Response(description="URL Stripe Connect onboarding")},
+        operation_description="Generate Stripe Connect onboarding link for sellers",
+        operation_summary="Generate Stripe Onboarding Link",
+        tags=['Seller Onboarding'],
+        responses={200: openapi.Response(description="Stripe Connect onboarding URL")},
     )
     def get(self, request):
         user = request.user

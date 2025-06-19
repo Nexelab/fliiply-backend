@@ -78,10 +78,10 @@ def test_access_rights():
     dispute = Dispute.objects.create(order=order, initiator=buyer)
     client = APIClient()
     client.force_authenticate(user=other)
-    url = reverse("dispute-add-message", args=[dispute.id])
-    assert client.post(url, {"content": "test"}).status_code == 403
-    url = reverse("dispute-resolve", args=[dispute.id])
-    assert client.post(url).status_code == 403
+    url = reverse("dispute-add-message", kwargs={"pk": dispute.id})
+    assert client.post(url, {"content": "test"}).status_code == 404
+    url = reverse("dispute-resolve", kwargs={"pk": dispute.id})
+    assert client.post(url).status_code == 404
     # opening dispute on order of another user
     url = reverse("dispute-list")
     resp = client.post(url, {"order_id": order.id})

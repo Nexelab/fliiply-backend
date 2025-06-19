@@ -8,6 +8,12 @@ class SearchHistory(models.Model):
     searched_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        indexes = [
+            models.Index(fields=['user']),
+            models.Index(fields=['query']),
+            models.Index(fields=['searched_at']),
+            models.Index(fields=['user', 'searched_at']),
+        ]
         ordering = ['-searched_at']
 
     def __str__(self):
