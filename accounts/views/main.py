@@ -116,9 +116,11 @@ class RegisterView(APIView):
     @swagger_auto_schema(
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            required=['username', 'email', 'password', 'confirm_password', 'accept_terms'],
+            required=['username', 'first_name', 'last_name', 'email', 'password', 'confirm_password', 'accept_terms'],
             properties={
                 'username': openapi.Schema(type=openapi.TYPE_STRING, description='Username of the new user'),
+                'first_name': openapi.Schema(type=openapi.TYPE_STRING, description='First name of the new user'),
+                'last_name': openapi.Schema(type=openapi.TYPE_STRING, description='Last name of the new user'),
                 'email': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL, description='Email of the new user'),
                 'password': openapi.Schema(type=openapi.TYPE_STRING, description='Password of the new user'),
                 'confirm_password': openapi.Schema(type=openapi.TYPE_STRING, description='Confirmation of the password'),

@@ -14,16 +14,27 @@ def create_stripe_account(user):
 
     print(user.role)
 
-    account = stripe.Account.create(
-        type="express",
-        country="FR",
-        email=user.email,
-        capabilities={
+    account_data = {
+        "type": "express",
+        "country": "FR",
+        "email": user.email,
+        "capabilities": {
             "transfers": {"requested": True},
             "card_payments": {"requested": True},
         },
-        business_type="company" if user.role == "professionnel" else "individual",
-    )
+        "business_type": "company" if user.role == "professionnel" else "individual",
+    }
+
+    if user.first_name or user.last_name:
+        account_data["individual"] = {
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+        }
+
+    if hasattr(user, "professional_info"):
+        account_data.setdefault("company", {})["name"] = user.professional_info.company_name
+
+    account = stripe.Account.create(**account_data)
     user.stripe_account_id = account.id
     user.save()
     return account.id
