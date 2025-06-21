@@ -1,0 +1,63 @@
+meta {
+  name: Update Listing
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}{{apiPath}}/listings/1/
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "price": "29.99",
+    "quantity": 2,
+    "description": "Updated description - excellent condition!"
+  }
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return updated listing", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('id');
+    expect(data.price).to.equal("29.99");
+  });
+}
+
+docs {
+  # Update Listing
+  
+  Update an existing marketplace listing (seller only).
+  
+  ## Authentication
+  Requires valid JWT access token and listing ownership.
+  
+  ## URL Parameters
+  - `id`: Listing ID (integer)
+  
+  ## Request Body
+  Partial update - only include fields to change:
+  - `price`: New listing price
+  - `quantity`: Updated quantity
+  - `description`: Updated description
+  - `condition`: Updated condition
+  - `is_available`: Availability status
+  
+  ## Notes
+  - Only the listing owner can update
+  - Cannot change product after creation
+}

@@ -1,0 +1,61 @@
+meta {
+  name: List Orders
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}{{apiPath}}/orders/
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+params:query {
+  page: 1
+  page_size: 20
+  ~status: pending
+  ~as_seller: false
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return orders array", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('results');
+    expect(data.results).to.be.an('array');
+  });
+}
+
+docs {
+  # List Orders
+  
+  Get user's orders (as buyer or seller).
+  
+  ## Authentication
+  Requires valid JWT access token.
+  
+  ## Query Parameters
+  - `page`: Page number
+  - `page_size`: Items per page
+  - `status`: Filter by order status
+  - `as_seller`: Show orders where user is seller (default: false)
+  
+  ## Response
+  Paginated list of orders with:
+  - Order details and status
+  - Items and total amount
+  - Shipping information
+  - Payment status
+  - Buyer/seller information
+}

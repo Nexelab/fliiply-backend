@@ -1,0 +1,49 @@
+meta {
+  name: Become Seller
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}{{apiPath}}/users/become_seller/
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return seller info", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('message');
+    expect(data).to.have.property('stripe_onboarding_url');
+  });
+}
+
+docs {
+  # Become Seller
+  
+  Enable seller capabilities for the current user and create Stripe Connect account.
+  
+  ## Authentication
+  Requires valid JWT access token.
+  
+  ## Response
+  - `message`: Confirmation message
+  - `stripe_onboarding_url`: URL to complete Stripe onboarding
+  
+  ## Notes
+  - Creates Stripe Express Connect account
+  - User must complete Stripe onboarding to sell
+  - Email verification required before becoming seller
+}

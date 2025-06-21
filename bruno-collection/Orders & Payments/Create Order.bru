@@ -1,0 +1,68 @@
+meta {
+  name: Create Order
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}{{apiPath}}/orders/
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "items": [
+      {
+        "listing": 1,
+        "quantity": 1
+      }
+    ],
+    "shipping_address": 1,
+    "payment_method": "stripe"
+  }
+}
+
+tests {
+  test("should return 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("should return created order", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('id');
+    expect(data).to.have.property('total_amount');
+    expect(data).to.have.property('payment_intent_id');
+  });
+}
+
+docs {
+  # Create New Order
+  
+  Create a new order with one or more marketplace listings.
+  
+  ## Authentication
+  Requires valid JWT access token.
+  
+  ## Request Body
+  - `items`: Array of order items (required)
+    - `listing`: Listing ID
+    - `quantity`: Quantity to order
+  - `shipping_address`: Address ID for shipping (required)
+  - `payment_method`: Payment method ("stripe", required)
+  
+  ## Response
+  Returns created order with:
+  - Order ID and status
+  - Total amount calculation
+  - Stripe PaymentIntent ID for payment processing
+  - Estimated delivery information
+}

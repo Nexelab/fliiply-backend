@@ -1,0 +1,45 @@
+meta {
+  name: Delete Listing
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}{{apiPath}}/listings/1/
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("should return 204", function() {
+    expect(res.getStatus()).to.equal(204);
+  });
+}
+
+docs {
+  # Delete Listing
+  
+  Remove a marketplace listing (seller only).
+  
+  ## Authentication
+  Requires valid JWT access token and listing ownership.
+  
+  ## URL Parameters
+  - `id`: Listing ID (integer)
+  
+  ## Response
+  Returns 204 No Content on successful deletion.
+  
+  ## Notes
+  - Only the listing owner can delete
+  - Cannot delete listings with pending orders
+  - Soft delete - keeps record for audit purposes
+}

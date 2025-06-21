@@ -33,6 +33,8 @@ class User(AbstractUser):
     email_otp_expiry = models.DateTimeField(blank=True, null=True)
     password_reset_otp = models.CharField(max_length=6, blank=True, null=True)
     password_reset_otp_expiry = models.DateTimeField(blank=True, null=True)
+    password_reset_token = models.CharField(max_length=20, blank=True, null=True)
+    password_reset_token_expiry = models.DateTimeField(blank=True, null=True)
     subscribed_to_newsletter = models.BooleanField(
         default=False,
         help_text="Indique si l'utilisateur est abonné à la newsletter."

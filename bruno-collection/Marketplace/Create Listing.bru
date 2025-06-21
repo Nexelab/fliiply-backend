@@ -1,0 +1,63 @@
+meta {
+  name: Create Listing
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}{{apiPath}}/listings/
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "product": 1,
+    "condition": "Near Mint",
+    "price": "25.99",
+    "quantity": 1,
+    "description": "Perfect condition Charizard from Base Set. Never played, stored in sleeve.",
+    "images": []
+  }
+}
+
+tests {
+  test("should return 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("should return created listing", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('id');
+    expect(data).to.have.property('product');
+    expect(data).to.have.property('price');
+  });
+}
+
+docs {
+  # Create New Listing
+  
+  Create a new marketplace listing for a product.
+  
+  ## Authentication
+  Requires valid JWT access token and seller account.
+  
+  ## Request Body
+  - `product`: Product ID (required)
+  - `condition`: Card condition (required)
+  - `price`: Listing price (required, decimal)
+  - `quantity`: Available quantity (required, integer)
+  - `description`: Listing description (optional)
+  - `images`: Array of image URLs (optional)
+  
+  ## Response
+  Returns the created listing with assigned ID and timestamp.
+}

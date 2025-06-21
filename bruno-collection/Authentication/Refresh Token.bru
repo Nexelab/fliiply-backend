@@ -1,0 +1,75 @@
+meta {
+  name: Refresh Token
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}{{apiPath}}/auth/refresh/
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "refresh": "{{refreshToken}}"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    const responseData = res.getBody();
+    bru.setEnvVar("accessToken", responseData.access);
+    if (responseData.refresh) {
+      bru.setEnvVar("refreshToken", responseData.refresh);
+    }
+  }
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return new tokens", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('access');
+    expect(data).to.have.property('refresh');
+  });
+  
+  test("should return expiry information", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('access_expires_in');
+    expect(data).to.have.property('refresh_expires_in');
+    expect(data.access_expires_in).to.be.a('number');
+    expect(data.refresh_expires_in).to.be.a('number');
+  });
+}
+
+docs {
+  # Refresh Access Token
+  
+  Get new access and refresh tokens using the current refresh token.
+  
+  ## Authentication
+  None required - uses refresh token.
+  
+  ## Request Body
+  - `refresh`: Valid refresh token (required)
+  
+  ## Response
+  - `access`: New JWT access token
+  - `refresh`: New JWT refresh token
+  - `access_expires_in`: Access token lifetime in seconds
+  - `refresh_expires_in`: Refresh token lifetime in seconds
+  
+  ## Notes
+  - Use when access token expires (after 5 minutes)
+  - Both tokens are rotated for security
+  - Old refresh token becomes invalid after use
+  - New tokens are automatically saved to environment
+}

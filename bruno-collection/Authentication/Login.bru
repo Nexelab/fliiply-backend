@@ -1,0 +1,70 @@
+meta {
+  name: Login
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}{{apiPath}}/auth/login/
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "username": "Vincent",
+    "password": "Soso3106"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    const responseData = res.getBody();
+    bru.setEnvVar("accessToken", responseData.access);
+    bru.setEnvVar("refreshToken", responseData.refresh);
+  }
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return tokens", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('access');
+    expect(data).to.have.property('refresh');
+  });
+  
+  test("should return expiry information", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('access_expires_in');
+    expect(data).to.have.property('refresh_expires_in');
+    expect(data.access_expires_in).to.be.a('number');
+    expect(data.refresh_expires_in).to.be.a('number');
+  });
+}
+
+docs {
+  # User Login
+  
+  Authenticate user and obtain JWT access and refresh tokens.
+  
+  ## Request Body
+  - `username`: User's username or email
+  - `password`: User's password
+  
+  ## Response
+  - `access`: JWT access token (valid for 60 minutes)
+  - `refresh`: JWT refresh token (valid for 1 day)
+  - `access_expires_in`: Access token lifetime in seconds
+  - `refresh_expires_in`: Refresh token lifetime in seconds
+  
+  ## Notes
+  - Tokens are automatically saved to environment variables
+  - Use access token for authenticated requests
+}

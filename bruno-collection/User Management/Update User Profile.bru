@@ -1,0 +1,61 @@
+meta {
+  name: Update User Profile
+  type: http
+  seq: 2
+}
+
+patch {
+  url: {{baseUrl}}{{apiPath}}/users/1/
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "first_name": "John",
+    "last_name": "Smith",
+    "email": "john.smith@example.com"
+  }
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return updated user data", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('first_name');
+    expect(data).to.have.property('last_name');
+  });
+}
+
+docs {
+  # Update User Profile
+  
+  Update the authenticated user's profile information.
+  
+  ## Authentication
+  Requires valid JWT access token. Users can only update their own profile.
+  
+  ## Request Body (all fields optional)
+  - `first_name`: User's first name
+  - `last_name`: User's last name
+  - `email`: Email address (must be unique)
+  
+  ## Response
+  Returns updated user profile data.
+  
+  ## Notes
+  - Replace `:id` in URL with actual user ID
+  - Users can only update their own profile
+  - Email changes may require re-verification
+}

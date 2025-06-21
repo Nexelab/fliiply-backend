@@ -1,0 +1,47 @@
+meta {
+  name: Get Product
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}{{apiPath}}/products/1/
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return product details", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('id');
+    expect(data).to.have.property('name');
+    expect(data).to.have.property('series');
+  });
+}
+
+docs {
+  # Get Product Details
+  
+  Retrieve detailed information about a specific product.
+  
+  ## Authentication
+  None required - public endpoint.
+  
+  ## URL Parameters
+  - `id`: Product ID (integer)
+  
+  ## Response
+  Complete product information including:
+  - Basic details (name, series, rarity, etc.)
+  - TCG-specific data (hp, attack, defense)
+  - Market information (average price, availability)
+  - Associated listings count
+}

@@ -1,0 +1,48 @@
+meta {
+  name: Get Listing
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}{{apiPath}}/listings/1/
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return listing details", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('id');
+    expect(data).to.have.property('product');
+    expect(data).to.have.property('seller');
+  });
+}
+
+docs {
+  # Get Listing Details
+  
+  Retrieve detailed information about a specific marketplace listing.
+  
+  ## Authentication
+  None required - public endpoint.
+  
+  ## URL Parameters
+  - `id`: Listing ID (integer)
+  
+  ## Response
+  Complete listing information including:
+  - Product details
+  - Seller information
+  - Pricing and availability
+  - Condition and description
+  - Images
+}

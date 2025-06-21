@@ -1,0 +1,11 @@
+meta {
+  name: Resend Verify Email
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}{{apiPath}}/auth/resend-verification-email/
+  body: none
+  auth: inherit
+}

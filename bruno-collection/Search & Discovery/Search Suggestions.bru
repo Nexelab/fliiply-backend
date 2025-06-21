@@ -1,0 +1,52 @@
+meta {
+  name: Search Suggestions
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}{{apiPath}}/search/suggestions/
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+params:query {
+  query: Char
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return suggestions array", function() {
+    const data = res.getBody();
+    expect(data).to.be.an('array');
+  });
+}
+
+docs {
+  # Search Suggestions
+  
+  Get auto-complete suggestions for search queries.
+  
+  ## Authentication
+  None required - public endpoint.
+  
+  ## Query Parameters
+  - `query`: Partial search term (required)
+  
+  ## Response
+  Array of string suggestions based on:
+  - Product names matching the query
+  - TCG series names
+  - Block names
+  - User search history (if authenticated)
+  
+  ## Example
+  Query "Char" might return: ["Charizard", "Charizard Base Set", "Charmeleon"]
+}

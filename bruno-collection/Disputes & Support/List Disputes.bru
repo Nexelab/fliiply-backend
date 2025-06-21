@@ -1,0 +1,61 @@
+meta {
+  name: List Disputes
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}{{apiPath}}/disputes/
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+params:query {
+  page: 1
+  page_size: 20
+  ~status: open
+  ~as_seller: false
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return disputes array", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('results');
+    expect(data.results).to.be.an('array');
+  });
+}
+
+docs {
+  # List Disputes
+  
+  Get user's disputes (as buyer or seller).
+  
+  ## Authentication
+  Requires valid JWT access token.
+  
+  ## Query Parameters
+  - `page`: Page number
+  - `page_size`: Items per page
+  - `status`: Filter by dispute status
+  - `as_seller`: Show disputes where user is seller (default: false)
+  
+  ## Response
+  Paginated list of disputes with:
+  - Dispute details and status
+  - Associated order information
+  - Case numbers and timelines
+  - Recent message activity
+  - Resolution status
+}

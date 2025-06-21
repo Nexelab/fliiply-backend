@@ -1,0 +1,50 @@
+meta {
+  name: Verify Email
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}{{apiPath}}/auth/verify-email/
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "john.doe@example.com",
+    "otp": "123456"
+  }
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return success message", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('message');
+  });
+}
+
+docs {
+  # Verify Email Address
+  
+  Verify user's email address using OTP code sent via email.
+  
+  ## Request Body
+  - `email`: User's email address
+  - `otp`: 6-digit OTP code from email
+  
+  ## Response
+  - `message`: Success confirmation
+  
+  ## Notes
+  - OTP expires after 10 minutes
+  - Email verification required for full account access
+}

@@ -1,0 +1,60 @@
+meta {
+  name: List Listings
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}{{apiPath}}/listings/
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+params:query {
+  page: 1
+  page_size: 20
+  ~product: 1
+  ~seller: 1
+  ~condition: Near Mint
+  ~min_price: 10.00
+  ~max_price: 100.00
+  ~available_only: true
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return listings array", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('results');
+    expect(data.results).to.be.an('array');
+  });
+}
+
+docs {
+  # List Marketplace Listings
+  
+  Get all marketplace listings with optional filtering.
+  
+  ## Authentication
+  None required - public endpoint.
+  
+  ## Query Parameters
+  - `page`: Page number
+  - `page_size`: Items per page
+  - `product`: Filter by product ID
+  - `seller`: Filter by seller ID
+  - `condition`: Filter by card condition
+  - `min_price`: Minimum price filter
+  - `max_price`: Maximum price filter
+  - `available_only`: Show only available listings
+  
+  ## Response
+  Paginated listings with product details, seller info, and pricing.
+}

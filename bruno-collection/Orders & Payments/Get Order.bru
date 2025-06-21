@@ -1,0 +1,52 @@
+meta {
+  name: Get Order
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}{{apiPath}}/orders/1/
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return order details", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('id');
+    expect(data).to.have.property('status');
+    expect(data).to.have.property('items');
+  });
+}
+
+docs {
+  # Get Order Details
+  
+  Retrieve detailed information about a specific order.
+  
+  ## Authentication
+  Requires valid JWT access token and order access (buyer or seller).
+  
+  ## URL Parameters
+  - `id`: Order ID (integer)
+  
+  ## Response
+  Complete order information including:
+  - Order status and timeline
+  - All order items with product details
+  - Shipping and billing information
+  - Payment status and transaction details
+  - Seller contact information
+}

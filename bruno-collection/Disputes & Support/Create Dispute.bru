@@ -1,0 +1,62 @@
+meta {
+  name: Create Dispute
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}{{apiPath}}/disputes/
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "order": 1,
+    "reason": "item_not_received",
+    "description": "Order was marked as delivered but I never received the package. Tracking shows delivered to wrong address."
+  }
+}
+
+tests {
+  test("should return 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("should return created dispute", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('id');
+    expect(data).to.have.property('reason');
+    expect(data).to.have.property('status');
+  });
+}
+
+docs {
+  # Create Dispute
+  
+  Create a new dispute for an order issue.
+  
+  ## Authentication
+  Requires valid JWT access token and order involvement (buyer or seller).
+  
+  ## Request Body
+  - `order`: Order ID (required)
+  - `reason`: Dispute reason (required)
+    - Valid reasons: "item_not_received", "item_damaged", "not_as_described", "other"
+  - `description`: Detailed description of the issue (required)
+  
+  ## Response
+  Returns created dispute with:
+  - Dispute ID and status
+  - Case number for reference
+  - Expected resolution timeline
+  - Next steps for both parties
+}

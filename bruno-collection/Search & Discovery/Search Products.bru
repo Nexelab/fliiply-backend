@@ -1,0 +1,62 @@
+meta {
+  name: Search Products
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}{{apiPath}}/search/
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+params:query {
+  q: Charizard
+  ~min_price: 10.00
+  ~max_price: 100.00
+  ~condition: Near Mint
+  ~rarity: Rare
+  ~available_only: true
+  page: 1
+  page_size: 20
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return search results", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('results');
+    expect(data.results).to.be.an('array');
+  });
+}
+
+docs {
+  # Search Products
+  
+  Advanced search for marketplace listings with comprehensive filtering.
+  
+  ## Authentication
+  None required - public endpoint.
+  
+  ## Query Parameters
+  - `q`: Search query (product name, series, etc.)
+  - `min_price`: Minimum price filter
+  - `max_price`: Maximum price filter
+  - `condition`: Card condition filter
+  - `rarity`: Card rarity filter
+  - `available_only`: Show only available listings
+  - `page`: Page number
+  - `page_size`: Items per page
+  
+  ## Notes
+  - Automatically saves search history for authenticated users
+  - Returns marketplace listings, not just products
+  - Supports partial text matching
+}

@@ -1,0 +1,52 @@
+meta {
+  name: Seller Dashboard
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}{{apiPath}}/sellers/dashboard/
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return dashboard data", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('total_sales');
+    expect(data).to.have.property('active_listings');
+    expect(data).to.have.property('pending_orders');
+  });
+}
+
+docs {
+  # Seller Dashboard
+  
+  Get seller performance metrics and summary data.
+  
+  ## Authentication
+  Requires valid JWT access token and seller account.
+  
+  ## Response
+  Dashboard metrics including:
+  - `total_sales`: Total sales amount
+  - `total_orders`: Number of orders processed
+  - `active_listings`: Count of active listings
+  - `pending_orders`: Orders awaiting action
+  - `recent_sales`: Recent sales activity
+  - `top_products`: Best-selling products
+  - `revenue_this_month`: Current month revenue
+  - `stripe_account_status`: Stripe account verification status
+}

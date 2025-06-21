@@ -1,0 +1,64 @@
+meta {
+  name: Create Address
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}{{apiPath}}/addresses/
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "address_type": "shipping",
+    "street": "123 Main Street",
+    "city": "Paris",
+    "state": "Île-de-France",
+    "postal_code": "75001",
+    "country": "France",
+    "is_default": true
+  }
+}
+
+tests {
+  test("should return 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("should return created address", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('id');
+    expect(data).to.have.property('street');
+  });
+}
+
+docs {
+  # Create New Address
+  
+  Add a new shipping or billing address for the authenticated user.
+  
+  ## Authentication
+  Requires valid JWT access token.
+  
+  ## Request Body
+  - `address_type`: "shipping" or "billing"
+  - `street`: Street address (required)
+  - `city`: City name (required)
+  - `state`: State/province (required)
+  - `postal_code`: ZIP/postal code (required)
+  - `country`: Country name (required)
+  - `is_default`: Set as default address (optional)
+  
+  ## Response
+  Returns the created address with assigned ID.
+}

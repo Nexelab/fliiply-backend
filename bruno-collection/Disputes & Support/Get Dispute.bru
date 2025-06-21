@@ -1,0 +1,53 @@
+meta {
+  name: Get Dispute
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}{{apiPath}}/disputes/1/
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return dispute details", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('id');
+    expect(data).to.have.property('status');
+    expect(data).to.have.property('order');
+  });
+}
+
+docs {
+  # Get Dispute Details
+  
+  Retrieve detailed information about a specific dispute.
+  
+  ## Authentication
+  Requires valid JWT access token and dispute involvement (buyer, seller, or admin).
+  
+  ## URL Parameters
+  - `id`: Dispute ID (integer)
+  
+  ## Response
+  Complete dispute information including:
+  - Dispute status and timeline
+  - Associated order details
+  - All messages and communications
+  - Evidence submitted by parties
+  - Admin notes and decisions
+  - Resolution details if resolved
+}

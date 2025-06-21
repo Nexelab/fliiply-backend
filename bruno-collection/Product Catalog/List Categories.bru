@@ -1,0 +1,47 @@
+meta {
+  name: List Categories
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}{{apiPath}}/categories/
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return categories array", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('results');
+    expect(data.results).to.be.an('array');
+  });
+}
+
+docs {
+  # List Product Categories
+  
+  Get all product categories with hierarchical structure.
+  
+  ## Authentication
+  None required - public endpoint.
+  
+  ## Response
+  Paginated list of categories with:
+  - `id`: Category ID
+  - `name`: Category name
+  - `slug`: URL-friendly category slug
+  - `description`: Category description
+  - `parent`: Parent category ID (null for root categories)
+  - `image`: Category image URL
+  - `is_active`: Whether category is active
+  - `children`: Nested child categories (if any)
+}

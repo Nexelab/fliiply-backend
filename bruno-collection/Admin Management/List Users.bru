@@ -1,0 +1,65 @@
+meta {
+  name: List Users
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}{{apiPath}}/admin/users/
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+params:query {
+  page: 1
+  page_size: 20
+  ~search: john@example.com
+  ~is_seller: true
+  ~is_active: true
+  ~is_email_verified: true
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return users array", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('results');
+    expect(data.results).to.be.an('array');
+  });
+}
+
+docs {
+  # List Users (Admin)
+  
+  Get all users with filtering and search capabilities (admin only).
+  
+  ## Authentication
+  Requires valid JWT access token and admin/staff privileges.
+  
+  ## Query Parameters
+  - `page`: Page number
+  - `page_size`: Items per page
+  - `search`: Search by email, first name, or last name
+  - `is_seller`: Filter by seller status
+  - `is_active`: Filter by active status
+  - `is_email_verified`: Filter by email verification status
+  
+  ## Response
+  Paginated list of users with:
+  - Basic user information
+  - Account status and verification
+  - Registration and last login dates
+  - Seller status and statistics
+  - Admin flags and permissions
+}

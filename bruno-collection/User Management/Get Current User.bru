@@ -1,0 +1,49 @@
+meta {
+  name: Get Current User
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}{{apiPath}}/users/me/
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return user data", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('id');
+    expect(data).to.have.property('username');
+    expect(data).to.have.property('email');
+  });
+}
+
+docs {
+  # Get Current User Profile
+  
+  Retrieve the authenticated user's profile information.
+  
+  ## Authentication
+  Requires valid JWT access token in Authorization header.
+  
+  ## Response
+  Returns complete user profile including:
+  - Basic info (id, username, email, names)
+  - Role and permissions (is_buyer, is_seller, is_verifier)
+  - Verification status (email_verified, kyc_verified)
+  - Account type (particulier/professionnel)
+  - Timestamps (date_joined, last_login)
+}

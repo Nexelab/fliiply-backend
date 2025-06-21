@@ -1,0 +1,56 @@
+meta {
+  name: List Products
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}{{apiPath}}/products/
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+params:query {
+  page: 1
+  page_size: 20
+  ~name: Charizard
+  ~series: Base Set
+  ~rarity: Rare
+  ~is_active: true
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return products array", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('results');
+    expect(data.results).to.be.an('array');
+  });
+}
+
+docs {
+  # List Products
+  
+  Get all products with pagination and optional filtering.
+  
+  ## Authentication
+  None required - public endpoint.
+  
+  ## Query Parameters
+  - `page`: Page number (default: 1)
+  - `page_size`: Items per page (default: 20)
+  - `name`: Filter by product name (partial match)
+  - `series`: Filter by TCG series
+  - `rarity`: Filter by card rarity
+  - `is_active`: Filter by active status
+  
+  ## Response
+  Paginated list of products with complete card information.
+}

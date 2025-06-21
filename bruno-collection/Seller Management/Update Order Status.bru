@@ -1,0 +1,64 @@
+meta {
+  name: Update Order Status
+  type: http
+  seq: 1
+}
+
+patch {
+  url: {{baseUrl}}{{apiPath}}/orders/1/update_status/
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "status": "shipped",
+    "tracking_number": "1Z999AA1234567890",
+    "shipping_carrier": "UPS",
+    "notes": "Package shipped via UPS Ground. Expected delivery in 3-5 business days."
+  }
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return updated status", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('message');
+    expect(data).to.have.property('order_status');
+  });
+}
+
+docs {
+  # Update Order Status (Seller)
+  
+  Update order status and shipping information (seller only).
+  
+  ## Authentication
+  Requires valid JWT access token and seller role for the order.
+  
+  ## URL Parameters
+  - `id`: Order ID (integer)
+  
+  ## Request Body
+  - `status`: New order status (required)
+    - Valid statuses: "processing", "shipped", "delivered", "cancelled"
+  - `tracking_number`: Shipping tracking number (optional)
+  - `shipping_carrier`: Carrier name (optional)
+  - `notes`: Additional notes for buyer (optional)
+  
+  ## Response
+  - `message`: Status update confirmation
+  - `order_status`: Current order status
+  - `tracking_info`: Tracking information if provided
+}

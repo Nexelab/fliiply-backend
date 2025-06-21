@@ -1,0 +1,62 @@
+meta {
+  name: Confirm Payment
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}{{apiPath}}/orders/1/confirm_payment/
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "payment_intent_id": "pi_1234567890abcdef"
+  }
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return confirmation", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('message');
+    expect(data).to.have.property('order_status');
+  });
+}
+
+docs {
+  # Confirm Payment
+  
+  Confirm payment completion for an order.
+  
+  ## Authentication
+  Requires valid JWT access token and order ownership.
+  
+  ## URL Parameters
+  - `id`: Order ID (integer)
+  
+  ## Request Body
+  - `payment_intent_id`: Stripe PaymentIntent ID (required)
+  
+  ## Response
+  - `message`: Confirmation message
+  - `order_status`: Updated order status
+  - `estimated_delivery`: Delivery estimate
+  
+  ## Notes
+  - Updates order status to 'paid'
+  - Triggers seller notification
+  - Initiates fulfillment process
+}

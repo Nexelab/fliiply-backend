@@ -1,0 +1,51 @@
+meta {
+  name: List Addresses
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}{{apiPath}}/addresses/
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return addresses array", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('results');
+    expect(data.results).to.be.an('array');
+  });
+}
+
+docs {
+  # List User Addresses
+  
+  Get all shipping and billing addresses for the authenticated user.
+  
+  ## Authentication
+  Requires valid JWT access token.
+  
+  ## Response
+  Paginated list of addresses with:
+  - `id`: Address ID
+  - `address_type`: "shipping" or "billing"
+  - `street`: Street address
+  - `city`: City name
+  - `state`: State/province
+  - `postal_code`: ZIP/postal code
+  - `country`: Country name
+  - `is_default`: Whether this is the default address
+}

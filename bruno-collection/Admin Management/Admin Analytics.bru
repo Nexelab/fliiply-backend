@@ -1,0 +1,61 @@
+meta {
+  name: Admin Analytics
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}{{apiPath}}/admin/analytics/
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+params:query {
+  ~period: 30
+  ~metric: all
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should return analytics data", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('users');
+    expect(data).to.have.property('orders');
+    expect(data).to.have.property('revenue');
+  });
+}
+
+docs {
+  # Admin Analytics Dashboard
+  
+  Get comprehensive platform analytics and metrics (admin only).
+  
+  ## Authentication
+  Requires valid JWT access token and admin/staff privileges.
+  
+  ## Query Parameters
+  - `period`: Time period in days (default: 30)
+  - `metric`: Specific metric to retrieve ("all", "users", "orders", "revenue")
+  
+  ## Response
+  Analytics data including:
+  - `users`: User registration and activity metrics
+  - `orders`: Order volume and completion rates
+  - `revenue`: Revenue totals and trends
+  - `listings`: Marketplace listing statistics
+  - `disputes`: Dispute rates and resolution times
+  - `top_sellers`: Best performing sellers
+  - `popular_products`: Most traded products
+  - `geographic_data`: User and order distribution by region
+}

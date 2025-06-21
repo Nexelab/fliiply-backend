@@ -1,0 +1,81 @@
+meta {
+  name: Register
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}{{apiPath}}/auth/register/
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "username": "newuser123",
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john.doe@example.com",
+    "password": "SecurePassword123!",
+    "confirm_password": "SecurePassword123!",
+    "accept_terms": true,
+    "subscribed_to_newsletter": false,
+    "role": "particulier"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    const responseData = res.getBody();
+    bru.setEnvVar("accessToken", responseData.access);
+    bru.setEnvVar("refreshToken", responseData.refresh);
+  }
+}
+
+tests {
+  test("should return 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("should return tokens", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('access');
+    expect(data).to.have.property('refresh');
+  });
+  
+  test("should return expiry information", function() {
+    const data = res.getBody();
+    expect(data).to.have.property('access_expires_in');
+    expect(data).to.have.property('refresh_expires_in');
+    expect(data.access_expires_in).to.be.a('number');
+    expect(data.refresh_expires_in).to.be.a('number');
+  });
+}
+
+docs {
+  # User Registration
+  
+  Create a new user account and receive JWT tokens.
+  
+  ## Request Body
+  - `username`: Unique username (3-150 characters)
+  - `first_name`: User's first name
+  - `last_name`: User's last name
+  - `email`: Valid email address
+  - `password`: Secure password (min 8 characters)
+  - `confirm_password`: Must match password
+  - `accept_terms`: Must be true
+  - `role`: "particulier" or "professionnel"
+  - `subscribed_to_newsletter`: Optional boolean
+  
+  ## Response
+  Returns JWT tokens same as login endpoint
+  
+  ## Notes
+  - Email verification required after registration
+  - Professional accounts need additional business info
+}

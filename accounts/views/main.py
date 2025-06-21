@@ -4,11 +4,13 @@ from random import randint
 
 from django.core.mail import send_mail
 from django.utils import timezone
+from django.contrib.auth import password_validation
+from django.core.exceptions import ValidationError
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
@@ -47,13 +49,74 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 properties={
                     'refresh': openapi.Schema(type=openapi.TYPE_STRING, description='Refresh token'),
                     'access': openapi.Schema(type=openapi.TYPE_STRING, description='Access token'),
+                    'refresh_expires_in': openapi.Schema(type=openapi.TYPE_INTEGER, description='Refresh token expiry in seconds'),
+                    'access_expires_in': openapi.Schema(type=openapi.TYPE_INTEGER, description='Access token expiry in seconds'),
                 }
             ),
             401: "Unauthorized"
         }
     )
     def post(self, request, *args, **kwargs):
-        return super().post(request, *args, **kwargs)
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+            # Add expiry information to the response
+            response.data['refresh_expires_in'] = 604800  # 7 days in seconds
+            response.data['access_expires_in'] = 300      # 5 minutes in seconds
+        return response
+
+
+class CustomTokenRefreshView(TokenRefreshView):
+    """Custom JWT token refresh view with proper Swagger documentation."""
+    permission_classes = [AllowAny]
+
+    @swagger_auto_schema(
+        operation_description="Refresh JWT access token using refresh token",
+        operation_summary="Refresh Token",
+        tags=['Authentication'],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['refresh'],
+            properties={
+                'refresh': openapi.Schema(type=openapi.TYPE_STRING, description='Valid refresh token'),
+            },
+        ),
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'refresh': openapi.Schema(type=openapi.TYPE_STRING, description='New refresh token'),
+                    'access': openapi.Schema(type=openapi.TYPE_STRING, description='New access token'),
+                    'refresh_expires_in': openapi.Schema(type=openapi.TYPE_INTEGER, description='Refresh token expiry in seconds'),
+                    'access_expires_in': openapi.Schema(type=openapi.TYPE_INTEGER, description='Access token expiry in seconds'),
+                }
+            ),
+            401: "Invalid or expired refresh token"
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+            # Get the refresh token from request
+            refresh_token = request.data.get('refresh')
+            if refresh_token:
+                try:
+                    # Create new refresh token
+                    from rest_framework_simplejwt.tokens import RefreshToken
+                    token = RefreshToken(refresh_token)
+                    user = token.payload.get('user_id')
+                    if user:
+                        # Create fresh tokens
+                        new_refresh = RefreshToken.for_user(User.objects.get(id=user))
+                        response.data['refresh'] = str(new_refresh)
+                        response.data['access'] = str(new_refresh.access_token)
+                        response.data['refresh_expires_in'] = 604800  # 7 days
+                        response.data['access_expires_in'] = 300      # 5 minutes
+                except Exception:
+                    # Fallback to original response with just access token
+                    response.data['refresh_expires_in'] = 604800
+                    response.data['access_expires_in'] = 300
+        return response
+
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -422,17 +485,72 @@ class PasswordResetRequestView(APIView):
 
         return Response({'message': 'Password reset code sent'}, status=status.HTTP_200_OK)
 
-class PasswordResetConfirmView(APIView):
+class PasswordResetVerifyView(APIView):
+    """Step 1: Verify OTP and get reset token"""
     permission_classes = [AllowAny]
 
     @swagger_auto_schema(
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            required=['email', 'otp', 'new_password'],
+            required=['email', 'otp'],
             properties={
                 'email': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL),
-                'otp': openapi.Schema(type=openapi.TYPE_STRING),
+                'otp': openapi.Schema(type=openapi.TYPE_STRING, description='6-digit OTP code'),
+            },
+        ),
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'reset_token': openapi.Schema(type=openapi.TYPE_STRING, description='Temporary reset token for password change')
+                }
+            ),
+            400: "Bad Request",
+            403: "Invalid OTP"
+        },
+        operation_description="Verify OTP and receive reset token for password change",
+        operation_summary="Verify Password Reset OTP",
+        tags=['Authentication']
+    )
+    def post(self, request):
+        email = request.data.get('email')
+        otp = request.data.get('otp')
+
+        if not all([email, otp]):
+            return Response({'error': 'email and otp are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if user.is_password_reset_otp_valid(otp):
+            # Generate a temporary reset token (valid for 10 minutes)
+            reset_token = f"{randint(100000000, 999999999)}"
+            user.password_reset_token = reset_token
+            user.password_reset_token_expiry = timezone.now() + timedelta(minutes=10)
+            user.save()
+            
+            return Response({
+                'message': 'OTP verified successfully. You can now set your new password.',
+                'reset_token': reset_token
+            }, status=status.HTTP_200_OK)
+        return Response({'error': 'Invalid or expired OTP'}, status=status.HTTP_403_FORBIDDEN)
+
+
+class PasswordResetConfirmView(APIView):
+    """Step 2: Set new password using reset token"""
+    permission_classes = [AllowAny]
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['reset_token', 'new_password', 'password_confirm'],
+            properties={
+                'reset_token': openapi.Schema(type=openapi.TYPE_STRING, description='Reset token from OTP verification'),
                 'new_password': openapi.Schema(type=openapi.TYPE_STRING, description='New password to set'),
+                'password_confirm': openapi.Schema(type=openapi.TYPE_STRING, description='Confirm new password'),
             },
         ),
         responses={
@@ -441,32 +559,46 @@ class PasswordResetConfirmView(APIView):
                 properties={'message': openapi.Schema(type=openapi.TYPE_STRING)}
             ),
             400: "Bad Request",
-            403: "Invalid OTP"
+            403: "Invalid or expired reset token"
         },
-        operation_description="Confirm password reset with OTP and set new password",
+        operation_description="Set new password using reset token from OTP verification",
         operation_summary="Confirm Password Reset",
         tags=['Authentication']
     )
     def post(self, request):
-        email = request.data.get('email')
-        otp = request.data.get('otp')
+        reset_token = request.data.get('reset_token')
         new_password = request.data.get('new_password')
+        password_confirm = request.data.get('password_confirm')
 
-        if not all([email, otp, new_password]):
-            return Response({'error': 'email, otp, and new_password are required'}, status=status.HTTP_400_BAD_REQUEST)
+        if not all([reset_token, new_password, password_confirm]):
+            return Response({'error': 'reset_token, new_password, and password_confirm are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if new_password != password_confirm:
+            return Response({'error': 'Password confirmation does not match'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(
+                password_reset_token=reset_token,
+                password_reset_token_expiry__gt=timezone.now()
+            )
         except User.DoesNotExist:
-            return Response({'error': 'User not found'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Invalid or expired reset token'}, status=status.HTTP_403_FORBIDDEN)
 
-        if user.is_password_reset_otp_valid(otp):
-            user.set_password(new_password)
-            user.password_reset_otp = None
-            user.password_reset_otp_expiry = None
-            user.save()
-            return Response({'message': 'Password reset successfully'}, status=status.HTTP_200_OK)
-        return Response({'error': 'Invalid OTP'}, status=status.HTTP_403_FORBIDDEN)
+        # Validate password strength
+        try:
+            password_validation.validate_password(new_password, user)
+        except ValidationError as e:
+            return Response({'error': e.messages}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Set new password and clear reset tokens
+        user.set_password(new_password)
+        user.password_reset_otp = None
+        user.password_reset_otp_expiry = None
+        user.password_reset_token = None
+        user.password_reset_token_expiry = None
+        user.save()
+        
+        return Response({'message': 'Password reset successfully'}, status=status.HTTP_200_OK)
 
 class VerifyEmailView(APIView):
     permission_classes = [AllowAny]
